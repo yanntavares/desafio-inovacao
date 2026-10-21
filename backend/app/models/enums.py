@@ -31,14 +31,24 @@ class Gate(str, enum.Enum):
 
 
 class CategoriaItem(str, enum.Enum):
+    """As 16 seções do pacote de handoff: uma categoria de item por seção."""
+
+    PROBLEMA = "problema"
+    OBJETIVO = "objetivo"
+    PUBLICO = "publico"
     ESCOPO = "escopo"
     ENTREGAVEL = "entregavel"
+    REQUISITO_NAO_FUNCIONAL = "requisito_nao_funcional"
+    INTEGRACAO = "integracao"
     RESTRICAO = "restricao"
+    PREMISSA = "premissa"
     RISCO = "risco"
     ORCAMENTO = "orcamento"
     PRAZO = "prazo"
+    MARCO = "marco"
     STAKEHOLDER = "stakeholder"
-    OUTRO = "outro"
+    CRITERIO_ACEITE = "criterio_aceite"
+    DUVIDA = "duvida"
 
 
 class NaturezaItem(str, enum.Enum):

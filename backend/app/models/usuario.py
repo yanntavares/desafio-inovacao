@@ -21,5 +21,7 @@ class Usuario(Base):
     nome: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(200), unique=True)
     papel: Mapped[Papel] = mapped_column(enum_col(Papel, "papel"))
+    senha_hash: Mapped[str | None] = mapped_column(String(300))  # None = convidado, sem conta ainda
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    aceite_lgpd_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)

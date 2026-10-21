@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     extraction_max_repairs: int = 2
 
     jwt_secret: str = "troque-isto"
+    jwt_expira_minutos: int = 480
+
+    cors_origens: str = "http://localhost:3000"  # separadas por vírgula
+
+    email_dominio: str = "seedabit.org.br"  # só e-mail institucional cria conta
+    senha_minimo: int = 10
+    demo_mode: bool = False  # habilita login de demonstração e recarga do seed
 
 
 @lru_cache
