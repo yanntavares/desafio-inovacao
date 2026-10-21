@@ -29,7 +29,7 @@ cd frontend && npm run dev | build | lint
 ## Arquitetura do backend (`backend/app/`)
 - `api/` routers HTTP finos, **sem regra de negócio**.
 - `services/` regras: orquestrador de estados, gates, auditoria, pacote.
-- `models/` 10 tabelas (um arquivo por assunto + `enums.py`); JSON para segmentos, máscaras, evidências e vínculos documento→item. Mudou o model? A migração 0001 usa `create_all`; para banco já criado, gere revisão nova.
+- `models/` 10 tabelas (um arquivo por assunto + `enums.py`); JSON para segmentos, máscaras, evidências e vínculos documento→item. Ninguém tem banco criado ainda: edite a `0001` (que usa `create_all`) em vez de criar revisões, até a primeira entrega.
 - `schemas/` contratos Pydantic (API e saída da IA).
 - `llm/` `LLMProvider` (real + mock) e `prompts/` versionados em arquivo.
 - `core/` config (.env) e banco. `seed/` demonstração (usa os próprios services, então passa por todos os gates). `worker.py` consome a fila de jobs no PostgreSQL e despacha por `job.tipo`.
@@ -57,7 +57,7 @@ cd frontend && npm run dev | build | lint
 | G3 | HANDOFF_ENVIADO → ACEITO | gerente designado confirma versão específica do pacote | Gerente de projetos |
 | G4 | ACEITO → BRIEFING_APROVADO | gerente revisa e aprova o briefing | Gerente de projetos |
 
-Papéis (nome no código → nome nas telas): `comercial` = **Analista de negócios** cria, valida e envia (não aceita o próprio handoff; vê só os seus leads); `gerente` = **Gerente de projetos** aceita/aprova (não edita dados validados; vê todos); `tecnico` = equipe técnica, só lê; `admin` = **Diretoria** vê todos, gerencia usuários, **não aprova nada por outra pessoa**. O cliente não usa o sistema. Só o analista cadastra reunião (a matriz da tela da Diretoria manda, mesmo o botão aparecendo na tela do gerente). Conta nova entra como analista; só a Diretoria muda perfil. Todo endpoint novo precisa de teste 403 por papel × endpoint.
+Papéis (nome no código → nome nas telas): `comercial` = **Analista de negócios** cria, valida e envia (não aceita o próprio handoff; vê só os seus leads); `gerente` = **Gerente de projetos** aceita/aprova (não edita dados validados; vê todos); `tecnico` = equipe técnica, só lê; `admin` = **Diretoria** vê todos, gerencia usuários, **não aprova nada por outra pessoa**. O cliente não usa o sistema. Analista e gerente cadastram reunião (o gerente escolhe o analista responsável; o analista só cadastra para si); a Diretoria não. A matriz exibida na tela da Diretoria é derivada de `permissoes.MATRIZ` e já reflete isso. Conta nova entra como analista; só a Diretoria muda perfil. Todo endpoint novo precisa de teste 403 por papel × endpoint.
 
 ## Divisão IA × código
 - **Código:** parsing (.txt/.md/.vtt/.srt, até 15 mil palavras), segmentação, mascaramento (e-mail, telefone, CPF, CNPJ), validação de schema e evidência literal, matriz de obrigatórios, estados, permissões, índice de completude, pacote, conferência de números/datas.

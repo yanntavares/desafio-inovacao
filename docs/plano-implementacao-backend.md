@@ -10,7 +10,7 @@ Tudo abaixo roda e tem teste em SQLite (23 testes, `make test`). Nada foi execut
 | Capacidade | Onde | Situação |
 | --- | --- | --- |
 | Conta, login JWT, perfis, modo demonstração, convite | `services/usuarios.py`, `api/auth.py`, `api/admin.py` | Feito |
-| Matriz papel × ação, 403 com mensagem | `services/permissoes.py` | Feito, 11 combinações testadas |
+| Matriz papel × ação, 403 com mensagem | `services/permissoes.py` | Feito, 11 combinações testadas (analista e gerente cadastram reunião) |
 | Orquestrador de estados, G2/G3/G4, motivo de bloqueio | `services/orquestrador.py` | Feito |
 | Transcrição: .txt/.md/.vtt/.srt, segmentação, mascaramento, limite de 15 mil palavras | `services/transcricao.py` | Feito |
 | Extração com evidência literal, reparos, idempotência, worker | `services/extracao.py`, `worker.py`, `llm/` | Feito **só com o mock** |
@@ -28,7 +28,7 @@ Tudo abaixo roda e tem teste em SQLite (23 testes, `make test`). Nada foi execut
 Bloqueia tudo: só o SQLite foi exercitado.
 
 1. Subir `make up` e rodar `python -m app.seed` no container. Corrigir o que o PostgreSQL recusar (enums nativos compartilhados, JSON, `Date`).
-2. Decidir a migração: a `0001` usa `create_all` e foi alterada no lugar (colunas novas, 16 categorias). Bancos já criados precisam de volume novo (`docker compose down -v`) ou de revisão `0002`. Recomendo documentar o `down -v` agora e gerar `0002` quando houver dado a preservar.
+2. Migração: ninguém tem banco criado, então a `0001` (que usa `create_all`) continua sendo editada no lugar. Passar a gerar revisões (`make revision`) só depois da primeira entrega.
 3. Teste do worker com PostgreSQL: dois workers, `SKIP LOCKED`, nenhum job processado duas vezes.
 4. Rodar a suíte contra o banco do compose (serviço `db` de teste ou marcador `pytest -m postgres`), mantendo SQLite para o ciclo rápido.
 
@@ -67,7 +67,7 @@ Decisão em aberto dos requisitos: Claude ou OpenAI, atrás de `LLMProvider`.
 | Lead | Resumo gerencial (`resumo_gerencial` existe como tipo, mas nada o gera) |
 | Diretoria | Reenviar convite; filtros de auditoria por período |
 
-Decisão pendente: a tela do gerente mostra "+ Cadastrar reunião", mas a matriz de permissões diz que só o analista cadastra. O back segue a matriz; alinhar com quem fez as telas.
+Decidido: o gerente também cadastra reunião (escolhe o analista responsável). A Diretoria não.
 
 ### Fase 4 — Segurança e operação
 
