@@ -6,17 +6,19 @@ texto existe nos itens validados (a IA não inventa valor).
 
 import json
 import re
+import time
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.llm import get_provider
-from app.models import Documento, Item, Jornada, Pendencia, Usuario
+from app.models import Documento, Item, Job, Jornada, Pendencia, Usuario
 from app.models.enums import (
     EstadoJornada,
     Gate,
     NaturezaItem,
     StatusDocumento,
+    StatusJob,
     StatusPendencia,
     StatusValidacao,
     TipoDocumento,
@@ -33,7 +35,7 @@ _NUMERO = re.compile(r"(?<![\w#])(R\$\s?)?(\d[\d.,/:]*\d|\d)")
 
 def numeros_do_texto(texto: str) -> list[tuple[str, str]]:
     """(como aparece, só o número) de cada número ou data citado, sem a numeração de listas e títulos."""
-    sem_marcas = re.sub(r"^\s*(?:#+|\d+[.)]|[-*])\s+", "", texto, flags=re.M)
+    sem_marcas = re.sub(r"^\s*(?:#+|\d+[.)]|[-*])\s+", "", texto, flags=re.MULTILINE)
     return [((moeda or "") + num.rstrip(".,"), num.rstrip(".,")) for moeda, num in _NUMERO.findall(sem_marcas)]
 
 
@@ -65,6 +67,11 @@ def listar(db: Session, jornada_id: int) -> list[Documento]:
                            .order_by(Documento.criado_em, Documento.id)))
 
 
+def ultimo(db: Session, jornada_id: int, tipo: TipoDocumento) -> Documento | None:
+    return db.scalar(select(Documento).where(Documento.jornada_id == jornada_id, Documento.tipo == tipo)
+                     .order_by(Documento.versao.desc()).limit(1))
+
+
 def _proxima_versao(db: Session, jornada_id: int, tipo: TipoDocumento) -> int:
     ultima = db.scalar(select(func.max(Documento.versao))
                        .where(Documento.jornada_id == jornada_id, Documento.tipo == tipo))
@@ -82,7 +89,12 @@ def gerar(db: Session, jornada: Jornada, usuario: Usuario, tipo: TipoDocumento) 
         permissoes.exigir(usuario, Acao.GERAR_DOCUMENTO_PROJETO)
         if jornada.gerente_id != usuario.id:
             raise SemPermissao("Só o gerente designado gera este documento.")
-        if jornada.estado not in {EstadoJornada.ACEITO, EstadoJornada.BRIEFING_APROVADO}:
+        pos_aceite = {EstadoJornada.ACEITO, EstadoJornada.BRIEFING_APROVADO}
+        if tipo == TipoDocumento.RESUMO_GERENCIAL:
+            # apoia a decisão do G3, então existe antes do aceite
+            if jornada.estado not in pos_aceite | {EstadoJornada.HANDOFF_ENVIADO}:
+                raise ErroNegocio("O resumo gerencial é gerado depois que o handoff é enviado.", 409)
+        elif jornada.estado not in pos_aceite:
             raise ErroNegocio("Este documento só é gerado depois do aceite do handoff.", 409)
 
     itens = _itens_validados(db, jornada.id)
@@ -97,7 +109,14 @@ def gerar(db: Session, jornada: Jornada, usuario: Usuario, tipo: TipoDocumento) 
             "id": it.id, "descricao": it.descricao,
             "natureza": (it.natureza_final or NaturezaItem.EM_DISCUSSAO).value,
         })
-    resp = get_provider().redigir(tipo.value, contexto)
+    provider = get_provider()
+    inicio = time.monotonic()
+    resp = provider.redigir(tipo.value, contexto)
+    # custo e tokens por jornada: toda chamada de IA fica registrada em `job`
+    db.add(Job(jornada_id=jornada.id, tipo="redacao", status=StatusJob.CONCLUIDO, payload={"tipo": tipo.value},
+               provedor=provider.nome, modelo=resp.modelo, tokens_entrada=resp.tokens_entrada,
+               tokens_saida=resp.tokens_saida, custo_estimado=resp.custo_estimado,
+               latencia_ms=int((time.monotonic() - inicio) * 1000)))
     saida = json.loads(resp.texto)
     # o título carrega o nome do cliente (dado do cadastro, não da IA): fora da conferência
     corpo = "\n".join(saida["markdown"].splitlines()[1:])

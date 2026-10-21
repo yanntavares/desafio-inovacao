@@ -17,7 +17,8 @@ Os .docx não são legíveis pelo Read; extraia com `unzip -p docs/X.docx word/d
 ## Comandos
 ```bash
 make up                 # .env + docker compose (db + api + worker); API em :8000, /docs, /health
-make test               # cd backend && pytest -q  (antes: pip install -e "backend[dev]"); usa SQLite em memória
+make test               # cd backend && uv run pytest -q; usa SQLite em memória (teste do worker é pulado)
+make test-pg            # mesma suíte no PostgreSQL do compose, banco handoff_teste (o CI roda assim)
 docker compose exec api python -m app.seed   # carrega a demonstração (senha de todos: demonstracao1)
 make migrate            # alembic upgrade head no container
 make revision m="txt"   # migração autogerada a partir dos models

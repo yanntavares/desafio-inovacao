@@ -2,15 +2,13 @@
 
 import json
 
+import pytest
 from sqlalchemy import select
 
 from app.models import Auditoria, Item, Jornada, PacoteHandoff, Pendencia, Usuario
-from app.models.enums import StatusPendencia
 from app.services import transcricao
 from app.services.documentos import conferir_numeros
 from app.services.erros import ErroNegocio
-
-import pytest
 
 
 def _lead(db, cliente):
@@ -80,6 +78,8 @@ def test_matriz_403(client, db, entrar):
         ("marina.costa", "get", "/auditoria", None),
         ("rafael.lima", "get", "/auditoria", None),
         ("marina.costa", "get", "/painel/funil", None),
+        ("marina.costa", "get", "/projetos", None),
+        ("diretoria", "get", "/projetos", None),
     ]
     for quem, metodo, url, corpo in chamadas:
         r = getattr(client, metodo)(url, headers=entrar(quem), **({"json": corpo} if corpo else {}))
@@ -267,7 +267,7 @@ def test_funil_da_diretoria_e_gestao_de_usuarios(client, entrar):
     d = entrar("diretoria")
     f = client.get("/painel/funil", headers=d).json()
     assert f["kpis"]["leads_no_funil"] == 9 and f["kpis"]["handoffs_aguardando_aceite"] == 1
-    assert [e["etapa"] for e in f["funil"]][0] == "Nova reunião"
+    assert f["funil"][0]["etapa"] == "Nova reunião"
     assert client.get("/permissoes", headers=d).json()["aviso"]
     meu = client.get("/auth/me", headers=d).json()["id"]
     r = client.patch(f"/usuarios/{meu}", headers=d, json={"papel": "comercial"})

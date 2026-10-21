@@ -6,6 +6,14 @@ from typing import Protocol
 
 PROMPTS = Path(__file__).parent / "prompts"
 
+TITULOS_DOCUMENTO = {
+    "resumo_comercial": "Resumo da reunião",
+    "briefing_comercial": "Briefing comercial",
+    "resumo_gerencial": "Resumo gerencial",
+    "briefing_projeto": "Briefing de projeto",
+    "pauta_kickoff": "Pauta de kickoff",
+}
+
 
 @dataclass
 class RespostaLLM:

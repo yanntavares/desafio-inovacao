@@ -31,7 +31,16 @@ from app.models.enums import (
     StatusValidacao,
     TipoDocumento,
 )
-from app.services import documentos, extracao, itens, jornadas, orquestrador, pacote, pendencias, seguranca
+from app.services import (
+    documentos,
+    extracao,
+    itens,
+    jornadas,
+    orquestrador,
+    pacote,
+    pendencias,
+    seguranca,
+)
 
 SENHA_DEMO = "demonstracao1"
 DOMINIO = "seedabit.org.br"
@@ -121,6 +130,7 @@ def _criar_lead(db: Session, u: dict[str, Usuario], cliente, negocio, analista_k
     if alvo == E.VALIDADA:
         return
     pacote.enviar(db, j, analista, gerente.id)
+    documentos.gerar(db, j, gerente, TipoDocumento.RESUMO_GERENCIAL)
     if alvo == E.HANDOFF_ENVIADO:
         return
     pacote.aceitar(db, j, gerente, pacote.ultimo(db, j.id).versao)
@@ -136,11 +146,3 @@ def recarregar(db: Session) -> None:
     for lead in LEADS:
         _criar_lead(db, usuarios_, *lead)
     db.commit()
-
-
-if __name__ == "__main__":
-    from app.core.database import SessionLocal
-
-    with SessionLocal() as sessao:
-        recarregar(sessao)
-    print(f"Demonstração carregada. Senha de todos os usuários: {SENHA_DEMO}")

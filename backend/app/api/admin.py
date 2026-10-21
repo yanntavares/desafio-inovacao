@@ -1,5 +1,7 @@
 """Telas da Diretoria: usuários, permissões, funil e auditoria (+ recarga da demonstração)."""
 
+from datetime import date
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -57,9 +59,10 @@ def funil(dias: int = 30, analista_id: int | None = None, gerente_id: int | None
 
 @router.get("/auditoria")
 def auditoria(jornada_id: int | None = None, usuario_id: int | None = None, acao: str | None = None,
-              limite: int = 100, user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+              desde: date | None = None, ate: date | None = None, limite: int = 100,
+              user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
     return painel.auditoria_global(db, user, jornada_id=jornada_id, usuario_id=usuario_id,
-                                   acao=acao, limite=limite)
+                                   acao=acao, desde=desde, ate=ate, limite=limite)
 
 
 @router.post("/demo/recarregar")

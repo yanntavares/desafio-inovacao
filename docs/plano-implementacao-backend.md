@@ -25,7 +25,7 @@ Tudo abaixo roda e tem teste em SQLite (23 testes, `make test`). Nada foi execut
 
 ### Fase 0 — Provar em PostgreSQL (primeiro, antes de qualquer feature)
 
-Bloqueia tudo: só o SQLite foi exercitado.
+**Feita em 21/10.** Compose + migrations + seed no Postgres; lead novo foi a `EM_VALIDACAO` pelo worker real; `make test-pg` roda a suíte inteira no banco `handoff_teste` (31 testes, incluindo dois workers concorrentes sem job duplicado), e o CI roda assim. Corrigido no caminho: `python -m app.seed` (faltava `__main__.py`) e as chaves de estado das notificações (valores do enum são maiúsculos). Atenção: um Postgres instalado no WSL na 5432 sombreia o do compose; use `DB_PORT=5433` no `.env`.
 
 1. Subir `make up` e rodar `python -m app.seed` no container. Corrigir o que o PostgreSQL recusar (enums nativos compartilhados, JSON, `Date`).
 2. Migração: ninguém tem banco criado, então a `0001` (que usa `create_all`) continua sendo editada no lugar. Passar a gerar revisões (`make revision`) só depois da primeira entrega.
@@ -36,7 +36,7 @@ Pronto quando: `make up` + seed + `make test` passam, e um lead anda de `CRIADA`
 
 ### Fase 1 — Lacunas dos invariantes (testes que ainda não existem)
 
-O código existe; falta o teste que o `CLAUDE.md` exige para cada invariante.
+**Feita em 21/10** (`tests/api/test_invariantes.py`, 9 testes, SQLite e PostgreSQL). Única mudança de código: a tentativa recusada (403/409 de usuário autenticado) agora grava `acao_recusada` na auditoria, numa transação própria depois do rollback (handler em `main.py`).
 
 - Extração com saída inválida: até 2 reparos e depois `FALHA_EXTRACAO` (usar um provider falso que devolve JSON quebrado).
 - "Tentar de novo" não duplica itens (mesma chave de idempotência).
@@ -48,7 +48,7 @@ O código existe; falta o teste que o `CLAUDE.md` exige para cada invariante.
 
 ### Fase 2 — Provedor de IA real
 
-Decisão em aberto dos requisitos: Claude ou OpenAI, atrás de `LLMProvider`.
+**Decidido em 21/10: Claude (Anthropic)**, sem comparativo com OpenAI. Feito: `llm/anthropic.py` (`AnthropicProvider`, modelo em `LLM_MODELO`, padrão `claude-sonnet-5-5`, effort `medium`; saída por `json_schema`; `fallbacks="default"` para recusa do classificador; sem tools; transcrição mascarada dentro de `<transcricao>`), prompt `redacao_v1.md`, `LLM_MAX_TOKENS=16000` aplicado, tokens/custo em `job` (extração e agora também `tipo="redacao"`), `ia` no detalhe do lead e no funil, logs do SDK/httpx em WARNING. Testes com cliente falso em `tests/test_llm_anthropic.py`. **Falta:** rodar com chave real (pago, com autorização) e medir latência para decidir o item 4.
 
 1. Teste comparativo nas 3 transcrições fictícias (precisão da evidência, taxa de reparo, custo, latência). Usar a skill `claude-api` e os IDs de modelo atuais.
 2. Implementar o provider escolhido em `llm/`: prompt com a transcrição delimitada por `<transcricao>`, sem ferramentas com efeito colateral, `LLM_MAX_TOKENS` aplicado de fato (hoje só existe na config).
@@ -58,18 +58,15 @@ Decisão em aberto dos requisitos: Claude ou OpenAI, atrás de `LLMProvider`.
 
 ### Fase 3 — O que as telas pedem e ainda não tem endpoint
 
-| Tela | Falta |
-| --- | --- |
-| Login | "Esqueci a senha" (fluxo de redefinição) |
-| Topbar | Notificações (sino): devolução do gerente, novo handoff, pendência nova. Busca global de lead e usuário (hoje só `q` no kanban) |
-| Cadastro de reunião | Lista de leads existentes do analista e dos negócios para os selects; validação prévia dos 7 campos obrigatórios |
-| Gerente | Menu "Projetos" (leads de `ACEITO` em diante) e "Histórico" próprios |
-| Lead | Resumo gerencial (`resumo_gerencial` existe como tipo, mas nada o gera) |
-| Diretoria | Reenviar convite; filtros de auditoria por período |
+Feito em 21/10: `GET /reunioes/opcoes`, `POST /reunioes/pre-visualizar`, `GET /projetos`, `GET /busca`, `GET /notificacoes` e `POST /notificacoes/lidas` (derivadas da auditoria). "Histórico" = `GET /kanban?concluidas=true`. "Esqueci a senha" ficou fora do MVP (link desabilitado: "fale com a Diretoria").
+
+Também feito: resumo gerencial gerado pelo gerente designado já em `HANDOFF_ENVIADO` (`POST /jornadas/{id}/documentos` com `tipo=resumo_gerencial`; vem em `GET /jornadas/{id}` como `resumo_gerencial`; o seed gera um para cada lead a partir de "Handoff enviado") e `GET /auditoria?desde=&ate=`. Reenviar convite ficou fora do MVP (sem e-mail, a Diretoria avisa por fora).
 
 Decidido: o gerente também cadastra reunião (escolhe o analista responsável). A Diretoria não.
 
 ### Fase 4 — Segurança e operação
+
+**Feita em 21/10.** API recusa subir fora do demo com segredo de exemplo ou curto (`Settings.validar_producao` no lifespan); login bloqueia 15 min após 5 senhas erradas (falhas na auditoria como `login_falhou`); `POST /auth/renovar`; job `segredos` (gitleaks) no CI; README com endpoints, roteiro da demonstração e segurança. Testes em `tests/api/test_seguranca.py`.
 
 - Recusar subir fora do modo demo com `JWT_SECRET=troque-isto`.
 - Limite de tentativas no login e expiração/renovação de token.

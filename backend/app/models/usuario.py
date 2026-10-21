@@ -24,4 +24,5 @@ class Usuario(Base):
     senha_hash: Mapped[str | None] = mapped_column(String(300))  # None = convidado, sem conta ainda
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     aceite_lgpd_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notificacoes_lidas_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)

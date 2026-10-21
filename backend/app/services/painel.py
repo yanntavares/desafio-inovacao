@@ -1,6 +1,6 @@
 """Visão geral do funil (Diretoria e gerentes) e leitura de auditoria."""
 
-from datetime import timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from app.models import Auditoria, Jornada, Usuario
 from app.models.base import agora
 from app.models.enums import EstadoJornada as E
 from app.services import jornadas, orquestrador, permissoes
+from app.services.erros import ErroNegocio
 from app.services.permissoes import Acao
 
 
@@ -35,6 +36,7 @@ def funil(db: Session, usuario: Usuario, *, dias: int = 30, analista_id: int | N
             "pendencias_bloqueantes": sum(orquestrador.pendencias_bloqueantes_abertas(db, j.id) for j in ativas),
         },
         "funil": etapas,
+        "ia": jornadas.uso_ia(db),
         "projetos": [
             {"id": j.id, "cliente": j.cliente_nome, "titulo": j.titulo,
              "gerente": nomes.get(j.gerente_id), "estado": j.estado.value,
@@ -62,9 +64,16 @@ def permissoes_por_perfil() -> dict:
 
 
 def auditoria_global(db: Session, usuario: Usuario, *, jornada_id: int | None = None,
-                     usuario_id: int | None = None, acao: str | None = None, limite: int = 100) -> list[dict]:
+                     usuario_id: int | None = None, acao: str | None = None, desde: date | None = None,
+                     ate: date | None = None, limite: int = 100) -> list[dict]:
     permissoes.exigir(usuario, Acao.VER_AUDITORIA)
+    if desde and ate and desde > ate:
+        raise ErroNegocio("A data inicial é depois da final.")
     q = select(Auditoria).order_by(Auditoria.id.desc()).limit(min(limite, 500))
+    if desde:
+        q = q.where(Auditoria.criado_em >= datetime.combine(desde, time(), UTC))
+    if ate:
+        q = q.where(Auditoria.criado_em < datetime.combine(ate + timedelta(days=1), time(), UTC))
     if jornada_id:
         q = q.where(Auditoria.jornada_id == jornada_id)
     if usuario_id:

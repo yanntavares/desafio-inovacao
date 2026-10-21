@@ -14,6 +14,13 @@ class SemPermissao(ErroNegocio):
         super().__init__(mensagem, 403, "sem_permissao")
 
 
+class ErroIA(ErroNegocio):
+    """Falha do provedor de IA. A mensagem nunca carrega conteúdo do prompt."""
+
+    def __init__(self, mensagem: str):
+        super().__init__(mensagem, 502, "erro_ia")
+
+
 class NaoEncontrado(ErroNegocio):
     def __init__(self, o_que: str = "Registro"):
         super().__init__(f"{o_que} não encontrado.", 404, "nao_encontrado")

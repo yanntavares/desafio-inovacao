@@ -28,7 +28,17 @@ def cadastro(dados: CadastroIn, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(dados: LoginIn, db: Session = Depends(get_db)):
-    return _sessao(usuarios.autenticar(db, dados.email, dados.senha))
+    try:
+        return _sessao(usuarios.autenticar(db, dados.email, dados.senha))
+    except ErroNegocio:
+        db.commit()  # a tentativa falha fica registrada (conta para o bloqueio)
+        raise
+
+
+@router.post("/renovar")
+def renovar(user: Usuario = Depends(usuario_atual)):
+    """Token ainda válido → token novo, contando a expiração a partir de agora."""
+    return _sessao(user)
 
 
 @router.get("/me")

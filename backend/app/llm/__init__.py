@@ -12,5 +12,7 @@ def get_provider() -> LLMProvider:
     nome = get_settings().llm_provider
     if nome == "mock":
         return MockProvider()
-    # Provedor real fica para depois do teste comparativo nas transcrições fictícias.
-    raise ErroNegocio(f"Provedor de IA '{nome}' ainda não implementado. Use LLM_PROVIDER=mock.", 501)
+    if nome == "anthropic":
+        from app.llm.anthropic import AnthropicProvider
+        return AnthropicProvider()
+    raise ErroNegocio(f"Provedor de IA '{nome}' não implementado. Use LLM_PROVIDER=mock ou anthropic.", 501)

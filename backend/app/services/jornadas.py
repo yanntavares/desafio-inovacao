@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Item, Jornada, Pendencia, Reuniao, Usuario
+from app.models import Item, Job, Jornada, Pendencia, Reuniao, Usuario
 from app.models.enums import (
     EstadoJornada as E,
 )
@@ -77,6 +77,18 @@ def completude(db: Session, jornada_id: int) -> tuple[int, int]:
         )
     ))
     return len(cats), len(SECOES)
+
+
+def uso_ia(db: Session, jornada_id: int | None = None) -> dict:
+    """Chamadas, tokens e custo de IA registrados em `job` (de uma jornada ou de todas)."""
+    q = select(func.count(Job.id), func.coalesce(func.sum(Job.tokens_entrada), 0),
+               func.coalesce(func.sum(Job.tokens_saida), 0), func.coalesce(func.sum(Job.custo_estimado), 0.0)
+               ).where(Job.provedor.is_not(None))
+    if jornada_id is not None:
+        q = q.where(Job.jornada_id == jornada_id)
+    chamadas, entrada, saida, custo = db.execute(q).one()
+    return {"chamadas": chamadas, "tokens_entrada": entrada, "tokens_saida": saida,
+            "custo_estimado": round(float(custo), 4)}
 
 
 def contar_bloqueantes(db: Session, jornada_id: int) -> int:
@@ -233,4 +245,47 @@ def detalhe(db: Session, jornada: Jornada, usuario: Usuario) -> dict:
         ],
         "bloqueantes": sum(1 for p in pendencias_abertas if p.severidade == SeveridadePendencia.BLOQUEANTE),
         "gates": gates_do_usuario(db, jornada, usuario),
+        "ia": uso_ia(db, jornada.id),
+    }
+
+
+# --- apoio às telas: selects, projetos do gerente, busca -----------------------------
+
+def opcoes_reuniao(db: Session, usuario: Usuario) -> dict:
+    """Selects do cadastro de reunião e filtro de negócios do kanban."""
+    js = db.scalars(_consulta_visivel(usuario).where(Jornada.estado != E.CONCLUIDA)
+                    .order_by(Jornada.cliente_nome))
+    return {
+        "tipos": TIPOS_REUNIAO,
+        "leads": [{"id": j.id, "cliente": j.cliente_nome, "titulo": j.titulo,
+                   "responsavel_id": j.responsavel_id,
+                   "aceita_reuniao": j.estado in orquestrador.ESTADOS_ACEITAM_REUNIAO} for j in js],
+    }
+
+
+def projetos(db: Session, usuario: Usuario) -> list[dict]:
+    """Menu "Projetos" do gerente: leads dele já aceitos."""
+    permissoes.exigir(usuario, Acao.ACEITAR_G3)
+    js = db.scalars(select(Jornada).where(Jornada.gerente_id == usuario.id,
+                                          Jornada.estado.in_([E.ACEITO, E.BRIEFING_APROVADO]))
+                    .order_by(Jornada.atualizado_em.desc()))
+    return [_card(db, j, db.get(Usuario, j.responsavel_id)) for j in js]
+
+
+def buscar(db: Session, usuario: Usuario, q: str, limite: int = 10) -> dict:
+    q = (q or "").strip()
+    if len(q) < 2:
+        return {"leads": [], "usuarios": []}
+    like = f"%{q}%"
+    leads = db.scalars(_consulta_visivel(usuario)
+                       .where(Jornada.cliente_nome.ilike(like) | Jornada.titulo.ilike(like))
+                       .order_by(Jornada.cliente_nome).limit(limite))
+    usuarios = []
+    if permissoes.pode(usuario, Acao.GERENCIAR_USUARIOS):
+        usuarios = db.scalars(select(Usuario).where(Usuario.nome.ilike(like) | Usuario.email.ilike(like))
+                              .order_by(Usuario.nome).limit(limite))
+    return {
+        "leads": [{"id": j.id, "cliente": j.cliente_nome, "titulo": j.titulo, "estado": j.estado.value}
+                  for j in leads],
+        "usuarios": [{"id": u.id, "nome": u.nome, "email": u.email, "papel": u.papel.value} for u in usuarios],
     }

@@ -15,6 +15,9 @@ from app.models.enums import StatusJob
 from app.services import extracao
 
 logging.basicConfig(level=logging.INFO)
+# SDK e HTTP em INFO/DEBUG podem registrar o corpo das requisições (transcrição)
+for nome in ("anthropic", "httpx"):
+    logging.getLogger(nome).setLevel(logging.WARNING)
 log = logging.getLogger("worker")
 
 POLL_SEGUNDOS = 2
@@ -45,7 +48,7 @@ def processar(db, job: Job) -> None:
         else:
             raise ValueError(f"tipo de job desconhecido: {job.tipo}")
         db.commit()
-    except Exception as exc:  # noqa: BLE001 - o job registra o erro e a jornada vai a FALHA_EXTRACAO
+    except Exception as exc:
         db.rollback()
         log.exception("job %s falhou", job.id)
         job = db.get(Job, job.id)

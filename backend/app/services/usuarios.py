@@ -1,10 +1,12 @@
 """Contas: cadastro, login, convite e gestão de perfis (Diretoria)."""
 
+from datetime import timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models import Usuario
+from app.models import Auditoria, Usuario
 from app.models.base import agora
 from app.models.enums import Papel
 from app.services import auditoria, permissoes, seguranca
@@ -64,8 +66,20 @@ def cadastrar_conta(db: Session, nome: str, email: str, senha: str, confirmar: s
 
 
 def autenticar(db: Session, email: str, senha: str) -> Usuario:
+    """Falha de senha vira auditoria (sem tabela nova) e conta para o bloqueio. O chamador commita."""
     user = db.scalar(select(Usuario).where(Usuario.email == email.strip().lower()))
-    if not user or not user.ativo or not seguranca.verificar_senha(senha, user.senha_hash):
+    if not user:
+        raise ErroNegocio(MSG_LOGIN, 401, "nao_autenticado")  # mesma mensagem: não revela quem existe
+    cfg = get_settings()
+    # ponytail: login certo não zera o contador; a janela expira sozinha. Zerar ao logar, se precisar.
+    falhas = db.scalar(select(func.count(Auditoria.id)).where(
+        Auditoria.acao == "login_falhou", Auditoria.entidade_id == user.id,
+        Auditoria.criado_em >= agora() - timedelta(minutes=cfg.login_janela_minutos))) or 0
+    if falhas >= cfg.login_max_tentativas:
+        raise ErroNegocio(f"Muitas tentativas. Aguarde {cfg.login_janela_minutos} minutos ou fale com a Diretoria.",
+                          429, "login_bloqueado")
+    if not user.ativo or not seguranca.verificar_senha(senha, user.senha_hash):
+        auditoria.registrar(db, None, "login_falhou", "usuario", user.id)
         raise ErroNegocio(MSG_LOGIN, 401, "nao_autenticado")
     return user
 

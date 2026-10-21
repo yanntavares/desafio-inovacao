@@ -3,9 +3,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+import app.models as m
 from app.core.database import Base
 from app.models.enums import CategoriaItem, EstadoJornada, OrigemItem, Papel
-import app.models as m
 
 
 def _session() -> Session:

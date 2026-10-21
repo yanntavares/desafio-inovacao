@@ -13,8 +13,8 @@ from app.services.erros import ErroNegocio
 FORMATOS = {"txt", "md", "vtt", "srt", "colado"}
 
 _TEMPO = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?[.,]\d{3}\s*-->")
-_FALANTE = re.compile(r"^([A-Za-zÀ-ÿ][\w À-ÿ().'-]{0,40}):\s+(.+)$", re.S)
-_TAG_VOZ = re.compile(r"^<v\s+([^>]+)>(.*?)(</v>)?$", re.S)
+_FALANTE = re.compile(r"^([A-Za-zÀ-ÿ][\w À-ÿ().'-]{0,40}):\s+(.+)$", re.DOTALL)
+_TAG_VOZ = re.compile(r"^<v\s+([^>]+)>(.*?)(</v>)?$", re.DOTALL)
 
 
 def formato_do_arquivo(nome: str) -> str:

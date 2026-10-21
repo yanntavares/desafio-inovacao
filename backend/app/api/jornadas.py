@@ -9,9 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import usuario_atual
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Auditoria, Item, Jornada, Pendencia, Reuniao, Usuario
-from app.models.enums import EstadoJornada, StatusPendencia, TipoDocumento
+from app.models.enums import StatusPendencia, TipoDocumento
 from app.schemas.api import (
     AceiteIn,
     DevolucaoIn,
@@ -110,7 +111,49 @@ def minhas_pendencias(user: Usuario = Depends(usuario_atual), db: Session = Depe
     return [{**_serializar_pendencia(p), "cliente": j.cliente_nome, "titulo": j.titulo} for p, j in rows]
 
 
+@router.get("/projetos")
+def projetos(user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Menu "Projetos" do gerente. O "Histórico" é GET /kanban?concluidas=true."""
+    return jornadas.projetos(db, user)
+
+
+@router.get("/busca")
+def busca(q: str = "", user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    return jornadas.buscar(db, user, q)
+
+
 # --- cadastro de reunião ----------------------------------------------------------
+
+async def _ler_transcricao(texto: str | None, arquivo: UploadFile | None) -> tuple[str, str]:
+    if arquivo is not None and arquivo.filename:
+        formato = transcricao.formato_do_arquivo(arquivo.filename)
+        bruto = await arquivo.read()
+        try:
+            return formato, bruto.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise ErroNegocio("Não consegui ler o arquivo. Salve-o em UTF-8 e envie de novo.")
+    if texto and texto.strip():
+        return "colado", texto
+    raise ErroNegocio("Envie a transcrição: cole o texto ou escolha um arquivo.")
+
+
+@router.get("/reunioes/opcoes")
+def opcoes_reuniao(user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Selects do cadastro de reunião (lead existente, tipo) e filtro de negócios do kanban."""
+    return jornadas.opcoes_reuniao(db, user)
+
+
+@router.post("/reunioes/pre-visualizar")
+async def pre_visualizar(texto: str | None = Form(None), arquivo: UploadFile | None = File(None),
+                         user: Usuario = Depends(usuario_atual)):
+    """Valida a transcrição antes do envio (cartão "Formato válido"); não grava nada."""
+    permissoes.exigir(user, Acao.CADASTRAR_REUNIAO)
+    formato, conteudo = await _ler_transcricao(texto, arquivo)
+    dados = transcricao.processar(conteudo, formato)
+    return {"formato": formato, "palavras": dados["qtd_palavras"], "segmentos": len(dados["segmentos"]),
+            "dados_mascarados": len(dados["mascaras"]),
+            "limite_palavras": get_settings().max_transcript_words}
+
 
 @router.post("/reunioes", status_code=201)
 async def cadastrar_reuniao(
@@ -126,17 +169,7 @@ async def cadastrar_reuniao(
         assert isinstance(lista, list) and all(isinstance(p, dict) and p.get("nome") for p in lista)
     except (ValueError, AssertionError):
         raise ErroNegocio('Participantes inválidos. Envie um JSON como [{"nome": "Ana", "cliente": false}].')
-    if arquivo is not None and arquivo.filename:
-        formato = transcricao.formato_do_arquivo(arquivo.filename)
-        bruto = await arquivo.read()
-        try:
-            conteudo = bruto.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            raise ErroNegocio("Não consegui ler o arquivo. Salve-o em UTF-8 e envie de novo.")
-    elif texto and texto.strip():
-        formato, conteudo = "colado", texto
-    else:
-        raise ErroNegocio("Envie a transcrição: cole o texto ou escolha um arquivo.")
+    formato, conteudo = await _ler_transcricao(texto, arquivo)
     jornada, reuniao = jornadas.cadastrar_reuniao(
         db, user, jornada_id=jornada_id, cliente_nome=cliente_nome, titulo_negocio=titulo_negocio,
         analista_id=analista_id, data_reuniao=data_reuniao, tipo=tipo, participantes=lista,
@@ -189,6 +222,8 @@ def detalhe(jornada_id: int, user: Usuario = Depends(usuario_atual), db: Session
     out["devolucao"] = {"comentario": dev.comentario, "quando": dev.criado_em.isoformat()} if dev else None
     ultimo = pacote.ultimo(db, j.id)
     out["handoff"] = _serializar_pacote(ultimo, db) if ultimo else None
+    resumo = documentos.ultimo(db, j.id, TipoDocumento.RESUMO_GERENCIAL)
+    out["resumo_gerencial"] = _serializar_documento(resumo, completo=True) if resumo else None
     return out
 
 

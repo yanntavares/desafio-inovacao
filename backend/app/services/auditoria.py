@@ -31,3 +31,11 @@ def registrar(
     db.add(reg)
     db.flush()
     return reg
+
+
+def registrar_recusa(db: Session, usuario_id: int, metodo: str, rota: str, jornada_id: int | None,
+                     status: int, mensagem: str) -> None:
+    """Tentativa recusada (403/409). Transação própria: a ação foi desfeita, o registro fica."""
+    db.add(Auditoria(jornada_id=jornada_id, usuario_id=usuario_id, acao="acao_recusada", entidade="requisicao",
+                     depois={"metodo": metodo, "rota": rota, "status": status, "mensagem": mensagem}))
+    db.flush()
