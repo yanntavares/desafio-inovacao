@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend - Lint e Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v6
+
+      - name: Configurar Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # pega erro de tipo/compilação que o lint não vê
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend - Testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      LLM_PROVIDER: mock # nunca chamar IA paga no CI
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v6
+
+      - name: Configurar uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12" # mesmo do Dockerfile
+
+      - name: Instalar dependências
+        run: uv sync --frozen --extra dev
+
+      - name: Testes
+        run: uv run pytest -q
