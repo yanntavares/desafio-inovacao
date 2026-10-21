@@ -8,13 +8,9 @@ Prazo: congelamento de escopo em 20/10/2026; entrega 23/10 (meta interna 18h). P
 ## Fontes de verdade
 - `docs/requisitos-enxutos.docx` — capacidades, invariantes, gates, restrições, escopo cortado.
 - `docs/user-stories.docx` — 24 histórias por papel, padrões de UI, mensagens de bloqueio.
-<<<<<<< Updated upstream
-- `docs/telas/` — telas do projeto (quando chegarem; o front só avança com elas).
-=======
 - `docs/telas/` — 7 telas (cadastro de conta, login, Diretoria, kanban geral e do analista, cadastro de reunião, página do lead). **Mandam sobre as user stories** onde divergirem.
 - `docs/plano-implementacao-backend.md` — o que já existe no back e o que falta, em ordem.
 - `docs/plano-implementacao-frontend.md` — idem para o front. **Ainda não existe:** crie-o antes de começar a implementar telas.
->>>>>>> Stashed changes
 - `README.md` — como subir, estrutura e próximos passos.
 Em caso de dúvida de produto, consulte esses documentos antes de decidir. Telas e textos das user stories são hipóteses a validar, não contrato.
 Os .docx não são legíveis pelo Read; extraia com `unzip -p docs/X.docx word/document.xml | sed -e 's#</w:p>#\n#g' -e 's#<[^>]*>##g'`.
@@ -22,7 +18,9 @@ Os .docx não são legíveis pelo Read; extraia com `unzip -p docs/X.docx word/d
 ## Comandos
 ```bash
 make up                 # .env + docker compose (db + api + worker); API em :8000, /docs, /health
-make test               # cd backend && pytest -q  (antes: pip install -e "backend[dev]")
+make test               # cd backend && uv run pytest -q; usa SQLite em memória (teste do worker é pulado)
+make test-pg            # mesma suíte no PostgreSQL do compose, banco handoff_teste (o CI roda assim)
+docker compose exec api python -m app.seed   # carrega a demonstração (senha de todos: demonstracao1)
 make migrate            # alembic upgrade head no container
 make revision m="txt"   # migração autogerada a partir dos models
 make logs               # logs de api e worker
@@ -33,10 +31,12 @@ cd frontend && npm run dev | build | lint
 ## Arquitetura do backend (`backend/app/`)
 - `api/` routers HTTP finos, **sem regra de negócio**.
 - `services/` regras: orquestrador de estados, gates, auditoria, pacote.
-- `models/` 10 tabelas (um arquivo por assunto + `enums.py`); JSON para segmentos, máscaras, evidências e vínculos documento→item.
+- `models/` 10 tabelas (um arquivo por assunto + `enums.py`); JSON para segmentos, máscaras, evidências e vínculos documento→item. Ninguém tem banco criado ainda: edite a `0001` (que usa `create_all`) em vez de criar revisões, até a primeira entrega.
 - `schemas/` contratos Pydantic (API e saída da IA).
 - `llm/` `LLMProvider` (real + mock) e `prompts/` versionados em arquivo.
-- `core/` config (.env) e banco. `seed/` dados de demonstração. `worker.py` consome a fila de jobs no PostgreSQL.
+- `core/` config (.env) e banco. `seed/` demonstração (usa os próprios services, então passa por todos os gates). `worker.py` consome a fila de jobs no PostgreSQL e despacha por `job.tipo`.
+- Erros de regra: `ErroNegocio(mensagem, status)` em `services/erros.py`; o handler em `main.py` devolve `{detail, codigo}` em português para a tela. Services só fazem `flush`; **o endpoint commita**, assim ação e auditoria entram juntas.
+- Configuração de negócio (obrigatórios, 16 seções, severidades) em `services/matriz.py`; matriz papel × ação em `services/permissoes.py`.
 - Dependência: `api`/`worker` → `services` → `models`/`llm`. `models` não conhece camadas acima.
 - Migrações Alembic; toda mudança de model gera revisão (`make revision`).
 
@@ -59,7 +59,7 @@ cd frontend && npm run dev | build | lint
 | G3 | HANDOFF_ENVIADO → ACEITO | gerente designado confirma versão específica do pacote | Gerente de projetos |
 | G4 | ACEITO → BRIEFING_APROVADO | gerente revisa e aprova o briefing | Gerente de projetos |
 
-Papéis: **comercial** cria, valida e envia (não aceita o próprio handoff); **gerente** aceita/aprova (não edita dados validados); **equipe técnica** só lê; **administrador** cadastra usuários e não aprova nada por outro. O cliente não usa o sistema. Todo endpoint novo precisa de teste 403 por papel × endpoint.
+Papéis (nome no código → nome nas telas): `comercial` = **Analista de negócios** cria, valida e envia (não aceita o próprio handoff; vê só os seus leads); `gerente` = **Gerente de projetos** aceita/aprova (não edita dados validados; vê todos); `tecnico` = equipe técnica, só lê; `admin` = **Diretoria** vê todos, gerencia usuários, **não aprova nada por outra pessoa**. O cliente não usa o sistema. Analista e gerente cadastram reunião (o gerente escolhe o analista responsável; o analista só cadastra para si); a Diretoria não. A matriz exibida na tela da Diretoria é derivada de `permissoes.MATRIZ` e já reflete isso. Conta nova entra como analista; só a Diretoria muda perfil. Todo endpoint novo precisa de teste 403 por papel × endpoint.
 
 ## Divisão IA × código
 - **Código:** parsing (.txt/.md/.vtt/.srt, até 15 mil palavras), segmentação, mascaramento (e-mail, telefone, CPF, CNPJ), validação de schema e evidência literal, matriz de obrigatórios, estados, permissões, índice de completude, pacote, conferência de números/datas.
@@ -70,26 +70,22 @@ Papéis: **comercial** cria, valida e envia (não aceita o próprio handoff); **
 - Ao escrever código/prompts com a API da Anthropic, use a skill `claude-api` e os IDs de modelo atuais.
 
 ## Modelo de dados (conceitos)
-Jornada é o agregado central. Cadeia de rastreabilidade: documento → item → evidência → segmento (um clique do parágrafo ao trecho original). Item é linha: natureza proposta pela IA, natureza final só por ação humana, origem (explícita/inferida/manual), situação (informado/não informado), status de validação. Enums no banco e no código.
+**Lead = Jornada**: cliente + negócio (`titulo`); um lead tem várias reuniões. Kanban = etapas do funil (Nova reunião → Em validação → Validada → Handoff enviado → Aceito → Briefing aprovado; Concluída vai ao histórico). Os 16 campos do pacote são as 16 categorias de item (`CategoriaItem`); completude = seções preenchidas / 16. Jornada é o agregado central. Cadeia de rastreabilidade: documento → item → evidência → segmento (um clique do parágrafo ao trecho original). Item é linha: natureza proposta pela IA, natureza final só por ação humana, origem (explícita/inferida/manual), situação (informado/não informado), status de validação. Enums no banco e no código.
 
 ## Escopo
-**Dentro:** os 12 recursos do MVP (jornada/painel, entrada da transcrição, extração com evidência, lacunas/pendências, revisão G2, documentos comerciais, pacote de 16 seções, aceite G3, briefing+pauta G4, rastreabilidade/auditoria, 4 papéis + seed de demonstração). Dossiê vivo (RF-34/35) é condicional.
+**Dentro:** os 12 recursos do MVP (jornada/painel, entrada da transcrição, extração com evidência, lacunas/pendências, revisão G2, documentos comerciais, pacote de 16 seções, aceite G3, briefing+pauta G4, rastreabilidade/auditoria, perfis + seed de demonstração) e o que as telas pedem: login/cadastro com modo demonstração, funil e gestão de usuários da Diretoria, kanban por perfil. Dossiê vivo (RF-34/35) é condicional.
 **Fora:** áudio/transcrição automática, minuta de proposta, mudança de escopo, exportar tarefas, RAG/vetorial, ingestão por API de ferramenta, SSO, multiempresa, envio ao cliente. *Should* só se sobrar tempo (reprocessar com diff, pendências por IA, comentários por item, viabilidade, painel de IA, Drive, PDF/DOCX).
 Decisão consciente: **workflow determinístico com chamadas pontuais ao LLM**, não agente autônomo (ADR-04). Stack já definida: FastAPI + Next.js.
 
 ## Frontend (`frontend/`)
-Next.js 16 / React 19 / Tailwind 4 / TypeScript. **Leia `frontend/AGENTS.md`**: esta versão do Next tem breaking changes — consulte `node_modules/next/dist/docs/` antes de escrever código. Aguarde as telas em `docs/telas/`.
+Next.js 16 / React 19 / Tailwind 4 / TypeScript. **Leia `frontend/AGENTS.md`**: esta versão do Next tem breaking changes — consulte `node_modules/next/dist/docs/` antes de escrever código. Implemente a partir de `docs/telas/`; o contrato da API está em `/docs` (FastAPI).
 Padrões em todas as telas: faixa de estado da jornada (gate atual e quem age), chips de natureza e origem, evidência a um clique, botões de gate desabilitados **com o motivo escrito** (e a API recusa mesmo assim). Mensagens de erro/bloqueio dizem o que houve e a ação possível (ver tabela nas user stories). Telas por papel: comercial (painel, revisão com itens ao lado da evidência, pendências, handoff), gerente (fila, pacote, briefing, pauta), técnica (somente leitura), admin (usuários, papéis, demonstração).
 
 ## Como trabalhar
 - Leia antes de editar; mudanças pequenas, no estilo do código vizinho (nomes em português no domínio, comentários escassos e só do porquê).
-<<<<<<< Updated upstream
-- Implemente na ordem do README ("Próximos passos"): orquestrador + gates + auditoria → papéis e 403 → entrada da transcrição → `LLMProvider` + worker → front.
-=======
 - **Mantenha os planos em dia.** Toda mudança de back ou front atualiza o plano correspondente (`docs/plano-implementacao-backend.md` ou `docs/plano-implementacao-frontend.md`) no **mesmo commit** da mudança: mova o item para "já existe" com o estado real (testado ou não), marque o que foi decidido ou descartado e registre novos riscos e pendências. Plano desatualizado conta como entrega incompleta.
-- Siga `docs/plano-implementacao-backend.md` (o que falta no back, em ordem). Orquestrador, gates, papéis, transcrição, `LLMProvider` mock e worker já existem.
-- Testes do back rodam em SQLite: o que depende de PostgreSQL (enums nativos, `SKIP LOCKED`, migração) precisa de teste próprio com o banco do compose.
->>>>>>> Stashed changes
+- Siga `docs/plano-implementacao-backend.md` (o que falta no back, em ordem). Orquestrador, gates, papéis, transcrição, `LLMProvider` (mock e Claude) e worker já existem.
+- `make test` roda em SQLite; o que depende de PostgreSQL (enums nativos, `SKIP LOCKED`, migração) roda com `make test-pg`, como no CI.
 - Escreva o teste do invariante junto com a regra. Rode `make test` (e `npm run lint` no front) antes de dar algo como pronto; se não rodou, diga.
 - Não invente valores de negócio (orçamento, prazo, preço) em seeds, prompts ou fixtures de produção; seeds usam transcrições **fictícias**.
 - Nada de lógica de negócio em routers ou no front; nada de mudar estado fora do orquestrador.

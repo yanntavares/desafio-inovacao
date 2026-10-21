@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -33,8 +34,9 @@ class Jornada(Base):
         DateTime(timezone=True), default=agora, onupdate=agora
     )
 
-    reunioes: Mapped[list["Reuniao"]] = relationship(back_populates="jornada")
-
+    reunioes: Mapped[list["Reuniao"]] = relationship(
+        back_populates="jornada", order_by="Reuniao.id"
+    )
 
 
 class Reuniao(Base):
@@ -43,6 +45,10 @@ class Reuniao(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     jornada_id: Mapped[int] = mapped_column(ForeignKey("jornada.id"))
     titulo: Mapped[str] = mapped_column(String(200), default="")
+    analista_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"))
+    data_reuniao: Mapped[date | None] = mapped_column(Date)
+    tipo: Mapped[str] = mapped_column(String(30), default="exploratoria")
+    participantes: Mapped[list] = mapped_column(JSON, default=list)  # [{nome, cliente: bool}]
     texto_original: Mapped[str] = mapped_column(Text)  # preservado; só aparece na interface
     texto_hash: Mapped[str] = mapped_column(String(64))
     qtd_palavras: Mapped[int] = mapped_column(Integer)
