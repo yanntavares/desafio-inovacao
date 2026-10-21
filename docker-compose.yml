@@ -2,30 +2,38 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-handoff}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-handoff}
-      POSTGRES_DB: ${POSTGRES_DB:-handoff}
+      POSTGRES_USER: ${POSTGRES_USER:?Defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Defina POSTGRES_DB no .env}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-handoff}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   api:
     build: ./backend
     env_file: .env
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     volumes:
       - ./backend:/srv
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s # tempo das migrations
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
 
   worker:
     build: ./backend
@@ -33,9 +41,36 @@ services:
     command: python -m app.worker
     volumes:
       - ./backend:/srv
+    healthcheck:
+      disable: true # sem HTTP; restart cobre crash
     depends_on:
-      db:
+      api:
+        condition: service_healthy # api roda as migrations; worker só sobe com a tabela job criada
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: deps # só node_modules completo; `next dev` não precisa do build de produção
+    command: npm run dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # não deixa o bind mount apagar o node_modules da imagem
+      - /app/.next
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s # primeira compilação do next dev é lenta
+    depends_on:
+      api:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:
