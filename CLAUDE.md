@@ -8,7 +8,13 @@ Prazo: congelamento de escopo em 20/10/2026; entrega 23/10 (meta interna 18h). P
 ## Fontes de verdade
 - `docs/requisitos-enxutos.docx` — capacidades, invariantes, gates, restrições, escopo cortado.
 - `docs/user-stories.docx` — 24 histórias por papel, padrões de UI, mensagens de bloqueio.
+<<<<<<< Updated upstream
 - `docs/telas/` — telas do projeto (quando chegarem; o front só avança com elas).
+=======
+- `docs/telas/` — 7 telas (cadastro de conta, login, Diretoria, kanban geral e do analista, cadastro de reunião, página do lead). **Mandam sobre as user stories** onde divergirem.
+- `docs/plano-implementacao-backend.md` — o que já existe no back e o que falta, em ordem.
+- `docs/plano-implementacao-frontend.md` — idem para o front. **Ainda não existe:** crie-o antes de começar a implementar telas.
+>>>>>>> Stashed changes
 - `README.md` — como subir, estrutura e próximos passos.
 Em caso de dúvida de produto, consulte esses documentos antes de decidir. Telas e textos das user stories são hipóteses a validar, não contrato.
 Os .docx não são legíveis pelo Read; extraia com `unzip -p docs/X.docx word/document.xml | sed -e 's#</w:p>#\n#g' -e 's#<[^>]*>##g'`.
@@ -77,7 +83,13 @@ Padrões em todas as telas: faixa de estado da jornada (gate atual e quem age), 
 
 ## Como trabalhar
 - Leia antes de editar; mudanças pequenas, no estilo do código vizinho (nomes em português no domínio, comentários escassos e só do porquê).
+<<<<<<< Updated upstream
 - Implemente na ordem do README ("Próximos passos"): orquestrador + gates + auditoria → papéis e 403 → entrada da transcrição → `LLMProvider` + worker → front.
+=======
+- **Mantenha os planos em dia.** Toda mudança de back ou front atualiza o plano correspondente (`docs/plano-implementacao-backend.md` ou `docs/plano-implementacao-frontend.md`) no **mesmo commit** da mudança: mova o item para "já existe" com o estado real (testado ou não), marque o que foi decidido ou descartado e registre novos riscos e pendências. Plano desatualizado conta como entrega incompleta.
+- Siga `docs/plano-implementacao-backend.md` (o que falta no back, em ordem). Orquestrador, gates, papéis, transcrição, `LLMProvider` mock e worker já existem.
+- Testes do back rodam em SQLite: o que depende de PostgreSQL (enums nativos, `SKIP LOCKED`, migração) precisa de teste próprio com o banco do compose.
+>>>>>>> Stashed changes
 - Escreva o teste do invariante junto com a regra. Rode `make test` (e `npm run lint` no front) antes de dar algo como pronto; se não rodou, diga.
 - Não invente valores de negócio (orçamento, prazo, preço) em seeds, prompts ou fixtures de produção; seeds usam transcrições **fictícias**.
 - Nada de lógica de negócio em routers ou no front; nada de mudar estado fora do orquestrador.
