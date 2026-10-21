@@ -5,6 +5,7 @@ texto existe nos itens validados (a IA não inventa valor).
 """
 
 import json
+import logging
 import re
 import time
 
@@ -26,6 +27,8 @@ from app.models.enums import (
 from app.services import auditoria, orquestrador, permissoes
 from app.services.erros import ErroNegocio, NaoEncontrado, SemPermissao
 from app.services.permissoes import Acao
+
+log = logging.getLogger("documentos")
 
 COMERCIAIS = {TipoDocumento.RESUMO_COMERCIAL, TipoDocumento.BRIEFING_COMERCIAL}
 DE_PROJETO = {TipoDocumento.BRIEFING_PROJETO, TipoDocumento.PAUTA_KICKOFF, TipoDocumento.RESUMO_GERENCIAL}
@@ -121,8 +124,18 @@ def gerar(db: Session, jornada: Jornada, usuario: Usuario, tipo: TipoDocumento) 
     # o título carrega o nome do cliente (dado do cadastro, não da IA): fora da conferência
     corpo = "\n".join(saida["markdown"].splitlines()[1:])
     conferir_numeros(corpo, [i.descricao for i in itens])
+    # a IA não liga documento a item de outro cliente: só valem os ids enviados no contexto
+    validos = {i.id for i in itens}
+    vinculos, descartados = [], 0
+    for v in saida["itens"]:
+        ids = [i for i in v["item_ids"] if i in validos]
+        descartados += len(v["item_ids"]) - len(ids)
+        if ids:
+            vinculos.append({**v, "item_ids": ids})
+    if descartados:
+        log.warning("redação devolveu %d item_id(s) fora do lead %s; descartados", descartados, jornada.id)
     doc = Documento(jornada_id=jornada.id, tipo=tipo, versao=_proxima_versao(db, jornada.id, tipo),
-                    conteudo_md=saida["markdown"], itens=saida["itens"])
+                    conteudo_md=saida["markdown"], itens=vinculos)
     db.add(doc)
     db.flush()
     auditoria.registrar(db, usuario, "gerar_documento", "documento", doc.id, jornada.id, None,

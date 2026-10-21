@@ -123,3 +123,58 @@ def test_documento_gerado_registra_chamada_de_ia(client, db, entrar):
     assert redacao and all(j.status == StatusJob.CONCLUIDO and j.provedor == "mock" for j in redacao)
     ia = client.get(f"/jornadas/{folha.id}", headers=entrar("camila.reis")).json()["ia"]
     assert ia["chamadas"] == antes + 1
+
+
+# --- isolamento entre clientes ----------------------------------------------------
+
+def _lead(db, cliente):
+    return db.scalar(select(Jornada).where(Jornada.cliente_nome == cliente))
+
+
+def _ids(db, jornada):
+    from app.models import Item
+    return set(db.scalars(select(Item.id).where(Item.jornada_id == jornada.id)))
+
+
+def test_redacao_so_leva_o_proprio_lead_e_descarta_item_de_outro_cliente(client, db, entrar, monkeypatch):
+    from app.services import documentos
+    folha, horizonte = _lead(db, "Rede Folha"), _lead(db, "Instituto Horizonte")
+    meu, alheio = min(_ids(db, folha)), min(_ids(db, horizonte))
+    saida = json.dumps({"markdown": "# Briefing de projeto — Rede Folha\n\n## Problema\n- Alunos não revêem aulas\n",
+                        "itens": [{"paragrafo": 3, "item_ids": [meu, alheio]}, {"paragrafo": 2, "item_ids": [alheio]}]})
+    falso = ClienteFalso(texto=saida)
+    monkeypatch.setattr(documentos, "get_provider", lambda: AnthropicProvider(client=falso))
+    r = client.post(f"/jornadas/{folha.id}/documentos", headers=entrar("camila.reis"), json={"tipo": "briefing_projeto"})
+    assert r.status_code == 201, r.text
+
+    conteudo = falso.chamadas[0]["messages"][0]["content"]
+    enviado = json.loads(conteudo.removeprefix("<itens>\n").removesuffix("\n</itens>"))
+    ids_enviados = {i["id"] for itens in enviado["itens"].values() for i in itens}
+    assert enviado["cliente"] == "Rede Folha" and ids_enviados <= _ids(db, folha)
+    outros = db.scalars(select(Jornada.cliente_nome).where(Jornada.id != folha.id)).all()
+    assert not [c for c in outros if c in conteudo]
+
+    assert r.json()["itens"] == [{"paragrafo": 3, "item_ids": [meu]}]  # id do Instituto Horizonte descartado
+
+
+def test_extracao_so_leva_a_reuniao_do_job(client, db, entrar, monkeypatch):
+    marina = db.scalar(select(Usuario).where(Usuario.email == "marina.costa@seedabit.org.br"))
+
+    def cadastrar(cliente, texto):
+        r = client.post("/reunioes", headers=entrar("marina.costa"), data={
+            "cliente_nome": cliente, "titulo_negocio": "Site", "analista_id": marina.id,
+            "data_reuniao": "2026-10-21", "tipo": "exploratoria",
+            "participantes": json.dumps([{"nome": "Marina", "cliente": False}]), "texto": texto})
+        assert r.status_code == 201, r.text
+        return db.get(Jornada, r.json()["jornada_id"])
+
+    a = cadastrar("Cliente A", "Ana: O problema é que o estoque da padaria some no fim do mês.")
+    cadastrar("Cliente B", "Beto: O problema é que a clínica perde agendamentos de pacientes.")
+    falso = ClienteFalso(texto='{"itens": []}')
+    monkeypatch.setattr(extracao, "get_provider", lambda: AnthropicProvider(client=falso))
+    job = db.scalar(select(Job).where(Job.jornada_id == a.id))
+    job.status = StatusJob.EXECUTANDO
+    extracao.executar(db, job)
+    enviado = json.dumps(falso.chamadas, ensure_ascii=False, default=str)
+    assert "estoque da padaria" in enviado
+    assert "clínica" not in enviado and "Beto" not in enviado and "Cliente B" not in enviado
