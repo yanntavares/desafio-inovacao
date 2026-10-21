@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.core.database import SessionLocal
 from app.models import Job
 from app.models.enums import StatusJob
+from app.services import extracao
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("worker")
@@ -36,6 +37,22 @@ def pegar_proximo_job(db) -> Job | None:
     return job
 
 
+def processar(db, job: Job) -> None:
+    """Despacha por tipo; falha controlada nunca derruba o laço e nunca deixa job preso."""
+    try:
+        if job.tipo == "extracao":
+            extracao.executar(db, job)
+        else:
+            raise ValueError(f"tipo de job desconhecido: {job.tipo}")
+        db.commit()
+    except Exception as exc:  # noqa: BLE001 - o job registra o erro e a jornada vai a FALHA_EXTRACAO
+        db.rollback()
+        log.exception("job %s falhou", job.id)
+        job = db.get(Job, job.id)
+        extracao.falhar(db, job, str(exc))
+        db.commit()
+
+
 def main() -> None:
     log.info("worker iniciado")
     while True:
@@ -44,10 +61,8 @@ def main() -> None:
             if job is None:
                 time.sleep(POLL_SEGUNDOS)
                 continue
-            # TODO: despachar por job.tipo (extracao, ...)
             log.info("job %s (%s) recebido", job.id, job.tipo)
-            job.status = StatusJob.CONCLUIDO
-            db.commit()
+            processar(db, job)
 
 
 if __name__ == "__main__":
