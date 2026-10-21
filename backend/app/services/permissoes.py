@@ -35,6 +35,7 @@ MATRIZ: dict[Papel, set[Acao]] = {
         Acao.ENVIAR_HANDOFF,
     },
     Papel.GERENTE: {
+        Acao.CADASTRAR_REUNIAO,
         Acao.ACEITAR_G3,
         Acao.APROVAR_G4,
         Acao.GERAR_DOCUMENTO_PROJETO,

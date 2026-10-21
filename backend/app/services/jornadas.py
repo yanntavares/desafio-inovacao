@@ -98,7 +98,8 @@ def cadastrar_reuniao(
     analista = db.get(Usuario, analista_id)
     if not analista or analista.papel != Papel.COMERCIAL or not analista.ativo:
         raise ErroNegocio("Escolha um analista de negócios ativo como responsável.")
-    if analista.id != usuario.id:
+    # analista cadastra só para si; o gerente escolhe o analista responsável
+    if usuario.papel == Papel.COMERCIAL and analista.id != usuario.id:
         raise SemPermissao("Você só pode cadastrar reuniões dos seus próprios leads.")
     dados = transcricao.processar(texto, formato)  # valida tamanho/formato antes de gravar
 
@@ -107,7 +108,7 @@ def cadastrar_reuniao(
         if jornada.estado not in orquestrador.ESTADOS_ACEITAM_REUNIAO:
             raise ErroNegocio("Este lead já foi enviado ao gerente; não aceita novas reuniões.", 409)
         if jornada.responsavel_id != analista.id:
-            raise SemPermissao("Este lead pertence a outro analista.")
+            raise ErroNegocio("O analista responsável por este lead é outro. Escolha o analista do lead.")
     else:
         if not cliente_nome or not cliente_nome.strip():
             raise ErroNegocio("Informe o nome do lead.")
@@ -131,7 +132,7 @@ def cadastrar_reuniao(
 
 def tentar_extracao_de_novo(db: Session, usuario: Usuario, jornada: Jornada) -> None:
     permissoes.exigir(usuario, Acao.CADASTRAR_REUNIAO)
-    if jornada.responsavel_id != usuario.id:
+    if usuario.papel == Papel.COMERCIAL and jornada.responsavel_id != usuario.id:
         raise SemPermissao("Este lead pertence a outro analista.")
     if jornada.estado != E.FALHA_EXTRACAO:
         raise ErroNegocio("Só é possível tentar de novo quando a extração falhou.", 409)

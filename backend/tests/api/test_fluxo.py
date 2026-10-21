@@ -4,7 +4,7 @@ import json
 
 from sqlalchemy import select
 
-from app.models import Auditoria, Item, Jornada, PacoteHandoff, Pendencia
+from app.models import Auditoria, Item, Jornada, PacoteHandoff, Pendencia, Usuario
 from app.models.enums import StatusPendencia
 from app.services import transcricao
 from app.services.documentos import conferir_numeros
@@ -87,8 +87,21 @@ def test_matriz_403(client, db, entrar):
         assert r.json()["detail"]
 
 
-def test_gerente_nao_cadastra_reuniao(client, entrar):
-    assert _cadastrar(client, entrar("rafael.lima")).status_code == 403
+def test_quem_cadastra_reuniao(client, db, entrar):
+    marina = db.scalar(select(Usuario).where(Usuario.email == "marina.costa@seedabit.org.br"))
+    lucas = db.scalar(select(Usuario).where(Usuario.email == "lucas.prado@seedabit.org.br"))
+    # gerente cadastra e escolhe o analista responsável
+    r = _cadastrar(client, entrar("rafael.lima"), analista_id=marina.id)
+    assert r.status_code == 201, r.text
+    assert db.get(Jornada, r.json()["jornada_id"]).responsavel_id == marina.id
+    # gerente não aponta analista inexistente nem outro gerente como responsável
+    gerente = db.scalar(select(Usuario).where(Usuario.email == "camila.reis@seedabit.org.br"))
+    assert _cadastrar(client, entrar("rafael.lima"), analista_id=gerente.id).status_code == 422
+    # analista só cadastra para si
+    assert _cadastrar(client, entrar("marina.costa"), analista_id=lucas.id).status_code == 403
+    assert _cadastrar(client, entrar("marina.costa"), analista_id=marina.id).status_code == 201
+    # diretoria não cadastra
+    assert _cadastrar(client, entrar("diretoria"), analista_id=marina.id).status_code == 403
 
 
 # --- transcrição ------------------------------------------------------------------
