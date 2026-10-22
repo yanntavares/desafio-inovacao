@@ -53,12 +53,11 @@ src/
 ## 3. Cronograma 
 
 ```
-[21/10 - Quarta]  ──► Shell, Auth, Modo Demo, Ingestão & Kanban Dual
-[22/10 - Quinta]  ──► Página do Lead, Gate G3, Diretoria, E2E & Ensaio 
+[22/10 - Quinta]  ──► Shell, Auth, Modo Demo, Ingestão, Kanban Dual, Página do Lead, Gate G3, Diretoria e validação.
 
 ```
 
-### Dia 1: Quarta-feira (21/10) — Shell, Autenticação, Ingestão e Kanban Dual
+### Quinta-feira (22/10) — Shell, Autenticação, Ingestão, Kanban Dual, Página do Lead, Diretoria e Validação E2E.
 
 * **Autenticação e Shell Base (`01` e `02`):**
 
@@ -83,9 +82,6 @@ src/
   * **Visão Gerente**: Exibição global da carteira ("22 leads"), suporte a filtro por analistas e checkbox de pendências bloqueantes.
 
   * Renderização das 6 colunas do funil e cards com barras de progresso percentual.
-
-
-### Dia 2: Quinta-feira (22/10) — Página do Lead, Diretoria e Validação E2E.
 
 * **Página da Jornada e Gate G3 (`06`)** 
 
