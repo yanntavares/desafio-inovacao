@@ -68,6 +68,8 @@ Decidido: o gerente também cadastra reunião (escolhe o analista responsável).
 
 **Feita em 21/10.** API recusa subir fora do demo com segredo de exemplo ou curto (`Settings.validar_producao` no lifespan); login bloqueia 15 min após 5 senhas erradas (falhas na auditoria como `login_falhou`); `POST /auth/renovar`; job `segredos` (gitleaks) no CI; README com endpoints, roteiro da demonstração e segurança. Testes em `tests/api/test_seguranca.py`.
 
+**22/10:** custo do scrypt subiu para o mínimo da OWASP (`N=2**14, r=8, p=5`; antes `p=1`). Escolhido em vez de `N=2**17` para gastar 16 MB por login e não 128 MB. O hash não grava os parâmetros: senhas gravadas antes deixam de conferir (recarregar o seed; nenhum banco real existe ainda). O seed calcula um hash só para a senha pública da demonstração. Novo teste: banco guarda só o hash e o custo não regride. A suíte foi de ~54 s para ~83 s por causa dos logins nos testes.
+
 - Recusar subir fora do modo demo com `JWT_SECRET=troque-isto`.
 - Limite de tentativas no login e expiração/renovação de token.
 - Varredura de segredos no CI e CI rodando `make test` (RNF-03).

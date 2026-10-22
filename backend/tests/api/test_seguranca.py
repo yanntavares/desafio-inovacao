@@ -1,11 +1,12 @@
-"""Segredo do JWT fora do modo demo, limite de tentativas no login e renovação de token."""
+"""Segredo do JWT fora do modo demo, senha só como hash, limite de tentativas no login e renovação de token."""
 
 import pytest
 from sqlalchemy import func, select
 
 from app.core.config import Settings
-from app.models import Auditoria
+from app.models import Auditoria, Usuario
 from app.seed import SENHA_DEMO
+from app.services import seguranca
 
 
 @pytest.mark.parametrize(("demo", "segredo", "sobe"), [
@@ -21,6 +22,18 @@ def test_api_nao_sobe_com_segredo_inseguro_fora_do_demo(demo, segredo, sobe):
     else:
         with pytest.raises(RuntimeError, match="JWT_SECRET"):
             cfg.validar_producao()
+
+
+def test_banco_guarda_so_o_hash_da_senha(client, db):
+    senha = "senhaforte123"
+    r = client.post("/auth/cadastro", json={"nome": "Ana", "email": "ana@seedabit.org.br", "senha": senha,
+                                            "confirmar_senha": senha, "aceite_lgpd": True})
+    assert r.status_code == 201
+    armazenado = db.scalar(select(Usuario.senha_hash).where(Usuario.email == "ana@seedabit.org.br"))
+    assert armazenado.startswith("scrypt$") and senha not in armazenado
+    assert seguranca.verificar_senha(senha, armazenado) and not seguranca.verificar_senha("outra12345", armazenado)
+    # custo mínimo da OWASP para scrypt (N·p ≥ 2**14·5 com r=8): não regredir
+    assert seguranca._R >= 8 and seguranca._N * seguranca._P >= 2**14 * 5
 
 
 def _login(client, chave, senha):
