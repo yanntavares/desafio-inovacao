@@ -1,5 +1,5 @@
-import { EmConstrucao } from "@/components/layout/EmConstrucao";
+import { TabelaHistorico } from "@/components/historico/TabelaHistorico";
 
 export default function HistoricoPage() {
-  return <EmConstrucao titulo="Histórico" subtitulo="Jornadas concluídas." />;
+  return <TabelaHistorico />;
 }

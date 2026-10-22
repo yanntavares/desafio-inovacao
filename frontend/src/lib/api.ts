@@ -112,11 +112,12 @@ export const apiReunioes = {
 
 export const apiKanban = {
   /** A API já restringe o analista aos próprios leads, com ou sem filtro. */
-  listar: (token: string, { analista_id, negocio_id, so_bloqueantes }: FiltrosKanban) => {
+  listar: (token: string, { analista_id, negocio_id, so_bloqueantes }: FiltrosKanban, concluidas = false) => {
     const params = new URLSearchParams();
     if (analista_id) params.set("analista_id", String(analista_id));
     if (negocio_id) params.set("negocio_id", String(negocio_id));
     if (so_bloqueantes) params.set("so_bloqueantes", "true");
+    if (concluidas) params.set("concluidas", "true"); // histórico: só a coluna "Concluída"
     const consulta = params.toString();
     return requisitar<RespostaKanban>(`/kanban${consulta ? `?${consulta}` : ""}`, { token });
   },

@@ -19,12 +19,30 @@ Branch `feature/frontend-conciliado`, a partir desta (`feature/frontend-telas`).
 - **Cabeçalho:** busca rápida (`GET /busca`, a partir de 2 letras), sino de notificações (`GET /notificacoes` a cada 30 s; abrir marca como lidas) e migalha "Kanban › Página do lead" nas páginas de lead.
 - Selects dos filtros com sombra e borda azul no hover.
 
-**Não portado, de propósito:** a página do lead desta branch já tem evidência a um clique, stepper, painel G3 e histórico; a versão da outra branch não foi trazida.
+- **Histórico** (`/historico`, `components/historico/TabelaHistorico.tsx`): lista de leads concluídos a partir de `GET /kanban?concluidas=true`, com filtro por analista (gerente/técnico), estado vazio e atualização a cada 60 s. Testado no navegador: a gerente designada e o analista dono veem o lead concluído; outro analista vê o estado vazio (isolamento da carteira); "Abrir lead" leva à página do lead. Para ver a tela com dados, o lead "Padaria Trigal" foi concluído pela API (pauta de kickoff gerada e aprovada pela gerente); o seed não tem lead concluído e o reseed desfaz isso.
 
-**Pendências e riscos**
-- `/historico` continua placeholder ("Tela em implementação") nas duas branches; o back já serve `GET /kanban?concluidas=true`.
-- Sem tela de revisão G2 (confirmar/editar/rejeitar itens, resolver pendências) nem de documentos/G4, como antes.
-- Não verificado: troca de perfil pelo seletor do menu, abrir notificações e busca com resultado na interface (só renderização e o fluxo de login).
+**Correção (22/10):** a página do lead **não** foi portada da outra branch e isso foi um erro de avaliação. A outra tem o que esta não tem: ação "Tentar de novo" na falha de extração, "Aprovar validação" (G2) e atualização automática enquanto a extração roda. Aqui o card do kanban manda "abrir o lead e tentar de novo", mas a página não tem o botão (beco sem saída).
+
+**Lacunas contra `docs/requisitos-enxutos.docx` e `docs/user-stories.docx`** (o back tem o endpoint em todos os casos; falta a tela):
+
+| Prioridade | Lacuna | Histórias / capacidades | Endpoint pronto |
+| --- | --- | --- | --- |
+| 1 | "Tentar de novo" na falha de extração e polling da página do lead durante a extração | C4, C5 | `POST /jornadas/{id}/extracao/tentar-novamente` |
+| 1 | Revisão G2: itens ao lado da evidência; confirmar, editar, rejeitar, adicionar; seletor de natureza | C6, C7, C8 (cap. 5) | `GET/POST /jornadas/{id}/itens`, `PATCH /itens/{id}` |
+| 1 | Pendências: Informar / Esclarecido / Aceitar com risco + justificativa; lista com link no bloqueio do G2 | C9 (cap. 4) | `GET /jornadas/{id}/pendencias`, `POST /pendencias/{id}/resolver` |
+| 1 | Botão "Aprovar validação" (G2) com o motivo escrito | C10 | `POST /jornadas/{id}/validar` |
+| 1 | Documentos: gerar, editar, aprovar, exportar .md, parágrafos clicáveis até a evidência, bloqueio por número inventado | C11, G5, G6 (cap. 6 e 10) | `POST /jornadas/{id}/documentos`, `PUT/GET /documentos/{id}`, `/aprovar`, `/exportar` |
+| 1 | G4: gerente revisa e aprova o briefing; concluir a jornada | G5, G6 | `POST /documentos/{id}/aprovar`, `POST /jornadas/{id}/concluir` |
+| 2 | Fila do gerente (pacotes designados, versão, completude, pendências) | G1 | `GET /handoffs` |
+| 2 | Faixa com o comentário do gerente quando devolve o pacote | tabela de bloqueios | já vem no detalhe do lead (conferir) |
+| 2 | Perfil técnico: não há usuário técnico no seed nem no Modo demonstração; telas de briefing/pauta só leitura | T1, T2 | `GET /documentos/{id}` |
+| 2 | "Recarregar demonstração" na Diretoria | A2 | `POST /demo/recarregar` |
+| 3 | Ver o texto da reunião (aba Reuniões só lista metadados) | cap. 11 | `GET /reunioes/{id}` |
+| 3 | Pacotes: histórico de versões e prévia das 16 seções antes de enviar | C12 | `GET /jornadas/{id}/pacotes`, `GET /pacotes/{id}` |
+| 3 | Auditoria global na Diretoria; painel de IA (Should) | A3 | `GET /auditoria` |
+
+Sem 1 (G2, pendências, documentos, G4) a demonstração ponta a ponta pela interface para em "Em validação": o analista não consegue validar nem avançar. Hoje só dá para percorrer o fluxo pela API (`/docs`).
+- Não verificado: troca de perfil pelo seletor do menu, abrir notificações e busca com resultado na interface (só renderização e o fluxo de login). A aprovação de gates (G3) também não foi clicada.
 - **Cache do Next no Windows:** o bind mount não dispara recompilação de arquivos já compilados. Se uma edição não aparecer, rode `docker compose exec frontend sh -c 'rm -rf .next/*'` e `docker compose restart frontend`.
 - O front não tem testes automatizados; a conferência é visual e por lint/tsc.
 
