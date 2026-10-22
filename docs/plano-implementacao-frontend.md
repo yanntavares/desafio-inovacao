@@ -16,11 +16,11 @@ A tabela abaixo conecta diretamente os protótipos visuais aos seus respectivos 
 | ----- | ----- | ----- | ----- | ----- | 
 | `01-cadastro-de-conta 1.png` | `/cadastro` | Público | Formulário de cadastro, validação de senha (mínimo 10 caracteres com letras e números), checkbox de LGPD e link direto para login. | `POST /auth/cadastro` | 
 | `02-login 1.jpg` | `/login` | Todos | Login padrão por e-mail/senha, link de recuperação de senha (desabilitado para MVP) e painel **Modo demonstração** com atalhos de perfil. | `POST /auth/login`  `POST /auth/renovar` | 
-| `03-interface-diretoria 1.jpg` | `/diretoria` | Diretoria (`DR`) | Header de filtros globais, 4 cards de métricas do funil, gráfico "Funil por etapa", gerenciamento de usuários e matriz visual de permissões com aviso de trava. | `GET /painel`  `GET /admin/usuarios`  `POST /admin/usuarios`  `GET /auditoria` | 
+| `03-interface-diretoria 1.jpg` | `/diretoria` | Diretoria (`DR`) | Header de filtros globais, 4 cards de métricas do funil, gráfico "Funil por etapa", gerenciamento de usuários e matriz visual de permissões com aviso de trava. | `GET /painel/funil`  `GET /permissoes`  `GET /usuarios`  `POST /usuarios/convidar`  `PATCH /usuarios/{id}` | 
 | `04-kanban-geral 1.jpg` | `/kanban/geral` | Gerente (`RL`) | Banner de escopo ("Você vê todos os leads"), filtros por analista e negócio, 6 colunas do funil e cards com percentual de completude e badge de pendências. | `GET /kanban` | 
 | `04b-kanban-visao-analista 1.png` | `/kanban/meus-leads` | Analista (`MC`) | Banner de restrição ("Você vê apenas os seus leads"), botão em destaque **+ Cadastrar reunião** e cards restritos à carteira do analista. | `GET /kanban` (a API restringe pelo papel) | 
 | `05-cadastro-de-reuniao 1.jpg` | `/reunioes/cadastrar` | Analista / Gerente | Toggle "Lead existente / Novo lead", form de metadados e participantes, área de upload/texto (limite de 15k palavras), sidebar de resumo e checklist de obrigatórios (7/7). | `GET /reunioes/opcoes`  `POST /reunioes/pre-visualizar`  `POST /reunioes` | 
-| `06-pagina-individual-do-lead 1.jpg` | `/jornadas/{id}` | Todos (Ações por papel) | Stepper de 7 estados da jornada, abas de navegação, visão geral com chips de natureza/origem, histórico de documentação, widget de Handoff com Gate G3 e auditoria. | `GET /jornadas/{id}`  `GET /jornadas/{id}/documentos`  `GET /jornadas/{id}/pacote`  `POST /jornadas/{id}/aceitar-pacote`  `POST /jornadas/{id}/devolver-pacote` | 
+| `06-pagina-individual-do-lead 1.jpg` | `/jornadas/{id}` | Todos (Ações por papel) | Stepper de 7 estados da jornada, abas de navegação, visão geral com chips de natureza/origem, histórico de documentação, widget de Handoff com Gate G3 e auditoria. | `GET /jornadas/{id}`  `GET /jornadas/{id}/visao-geral`  `GET /jornadas/{id}/documentos`  `GET /jornadas/{id}/auditoria`  `GET /jornadas/{id}/reunioes`  `GET /itens/{id}/evidencia`  `POST /jornadas/{id}/handoff`  `POST /jornadas/{id}/handoff/aceitar`  `POST /jornadas/{id}/handoff/devolver` | 
 
 
 
@@ -91,7 +91,7 @@ src/
 
   * Histórico com listagem das versões dos documentos (resumos, briefings e pacotes).
 
-  * Painel lateral de Handoff com execução do Gate G3: botões "Aceitar handoff" e "Devolver ao analista" (integrados a `POST /jornadas/{id}/aceitar-pacote` e `devolver-pacote`).
+  * Painel lateral de Handoff com execução do Gate G3: botões "Aceitar handoff" e "Devolver ao analista" (integrados a `POST /jornadas/{id}/handoff/aceitar` e `/handoff/devolver`).
 
 * **Painel da Diretoria e Governança (`03`)** 
 
@@ -140,6 +140,32 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * **Componentes novos:** `kanban/QuadroKanban`, `kanban/ColunaKanban`, `kanban/CardLead`, `kanban/FiltrosKanban`; tipos `CardLead`, `ColunaKanban`, `RespostaKanban`, `FiltrosKanban`, `EtapaKanban` em `lib/tipos.ts`.
 * *Decisão:* cores pelos tokens do `@theme` (tirados das telas), não por hex novos.
 
+### Já existe — Página da jornada e Gate G3 (`06`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Rota:** `/jornadas/[id]` (server) valida o id e renderiza `jornada/PaginaJornada` (cliente), que carrega em paralelo `GET /jornadas/{id}`, `/visao-geral`, `/auditoria`, `/reunioes` e `/documentos`, e recarrega tudo depois de cada decisão.
+* **`HeaderJornada`:** cliente, negócio, "lead desde", chip da etapa atual, chips "Extraindo…" / "Falha na extração" e de dados pessoais mascarados (soma das reuniões), faixa de devolução com o comentário do gerente, stepper das 7 etapas (vindas da API) e os 4 cartões (gerente, analista, reuniões, completude).
+* **Abas:** Visão geral (requisitos + histórico de documentação), Histórico de documentação, Reuniões (transcrições recebidas) e Auditoria (feed completo, com recusas em vermelho).
+* **`TabelaRequisitosG3`:** as 16 seções com `ChipNatureza` (Acordado, Em discussão, Sugestão da IA, Não informado) e `ChipOrigem` (Inferido/Manual). Clicar no item abre a evidência (`GET /itens/{id}/evidencia`) logo abaixo; sem trecho, avisa que é inferido.
+* **`PainelHandoffGate` (G3):** versão, "Snapshot imutável · só nova versão altera", acordados/em discussão/bloqueantes, seções N de 16 e o que falta. Gerente e Diretoria veem "Aceitar handoff" e "Devolver ao analista" com a jornada em `HANDOFF_ENVIADO`; os botões ficam desabilitados com o motivo devolvido pela API em `gates.G3` (Diretoria sempre recebe "Só o gerente designado…") e a Diretoria vê a trava fixa "Perfil Diretoria não aprova nada por outra pessoa". Analista responsável, com a jornada `VALIDADA`, escolhe o gerente e envia o handoff (`POST /jornadas/{id}/handoff`); nos demais estados vê o status em leitura.
+* **`ModalDecisaoGateG3`:** aceitar exige marcar que conferiu a versão vN e envia essa versão (a API recusa se houver outra mais nova); devolver exige comentário. Erro da API aparece no modal. Esc e clique fora fecham.
+* **`LinhaTempoJornada`:** últimos 5 eventos no painel lateral (auditoria traduzida: "Enviou handoff v2", "Aprovou a validação (G2)"…); `ListaReunioes` na aba Reuniões.
+* *Decisões:* o pedido original citava `gate-g3/aprovar`, `src/@types` e aprovação pela Diretoria; seguimos o contrato real (`handoff/aceitar|devolver`, `lib/tipos.ts`) e o invariante de que a Diretoria não aprova. O aceite **não** leva observação: `AceiteIn` só tem `versao`, então não há campo de justificativa que seria descartado. "Nível de confiança" da IA não existe no back; a tela mostra natureza + origem + evidência. Cores pelos tokens do `@theme`, não por hex novos.
+
+### Já existe — Painel da Diretoria e governança (`03`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Rotas:** `/diretoria` (`diretoria/PainelDiretoria`) e `/diretoria/usuarios` (página própria com a tabela completa e a matriz). `EmConstrucao` saiu das duas.
+* **Filtros:** período (7/30/90 dias ou todo o período → `dias=0`), analista e gerente (de `GET /usuarios/opcoes`). Trocar filtro refaz `GET /painel/funil` e descarta respostas antigas. Usuários e matriz não dependem dos filtros.
+* **`CartoesMetricas`:** os 4 KPIs da API (leads no funil, em validação, handoffs aguardando aceite, pendências bloqueantes) com o filete lima da tela.
+* **`GraficoFunil`:** *decisão:* barras horizontais em CSS (sem biblioteca), largura proporcional à maior etapa, última etapa em lima. **`ListaProjetos`:** primeiros 5 leads ativos com gerente e chip da etapa; clicar abre `/jornadas/{id}`, "Ver todos" vai ao kanban geral.
+* **`TabelaUsuarios`** (autônoma, `GET /usuarios`): iniciais, nome, e-mail, select de perfil que salva na hora (`PATCH /usuarios/{id}`) com o erro da API na própria linha (ex.: "A Diretoria precisa de ao menos uma conta ativa."), chip de status. No painel mostra 5 linhas e link para a página completa, que acrescenta Desativar/Reativar. **`ModalConvidarUsuario`:** nome, e-mail institucional e perfil → `POST /usuarios/convidar`; botão desabilitado com o motivo escrito.
+* **`MatrizPermissoes`:** somente leitura, de `GET /permissoes` (derivada de `permissoes.MATRIZ`, a mesma dos gates), com a trava "Perfil Diretoria não aprova nada por outra pessoa." vinda da API.
+* `Selecao` do kanban virou `formulario/SelecaoFiltro` (reusada nos filtros da Diretoria).
+* *Decisões:* o plano citava `GET /painel`, `GET|POST /admin/usuarios` e `GET /auditoria`; seguimos o contrato real da API. A auditoria global (`GET /auditoria`) não aparece na tela 03 e ficou de fora. Status `convidado` aparece como "Convite pendente" (a tela diz "Convidada", que não serve para todos). Busca e sino de notificações do header não foram feitos (header compartilhado; mesma pendência do kanban). Uso de IA (`ia` no painel) é devolvido pela API mas não está na tela.
+
 ### Riscos e pendências
 
 * Token em `localStorage` fica exposto a XSS. Foi aceito para o MVP; a alternativa seria cookie httpOnly via proxy do Next.
@@ -149,6 +175,8 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * Cadastro de reunião: falta conferir no navegador contra a API (upload multipart, CORS com `Authorization`) e a fidelidade visual da tela 05. A pré-visualização envia o arquivo inteiro a cada troca; aceitável no limite de 15 mil palavras.
 * O botão "Cancelar" descarta o formulário sem confirmação.
 * Kanban: a busca do header ("Buscar lead, negócio…" das telas 04/04b) ainda não existe; a API já aceita `q` em `GET /kanban` e há `GET /busca`. Sem atualização automática: um card em "Extraindo…" só muda ao recarregar ou trocar filtro.
+* Página do lead: o breadcrumb ainda mostra "Kanban de leads" sem o nome do cliente (o header não conhece a jornada). Não há tela de revisão G2 (itens ao lado da evidência, pendências) nem de briefing/pauta (G4); o analista em `EM_VALIDACAO` só vê o motivo do G2. Documentos do histórico ainda não abrem.
+* Diretoria: trocar o próprio perfil é aceito pela API (só barra a última conta da Diretoria); a sessão passa a receber 403 nas telas da Diretoria até sair e entrar de novo. Convite não envia e-mail (o back só cria a conta pendente).
 * Kanban: o filtro de negócios lista só leads não concluídos (`/reunioes/opcoes`), o que basta porque o quadro não mostra concluídos.
 
 ## 4. Regras Visuais e Trava de Invariantes

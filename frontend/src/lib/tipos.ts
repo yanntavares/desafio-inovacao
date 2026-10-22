@@ -131,3 +131,175 @@ export interface FiltrosKanban {
   negocio_id: number | null;
   so_bloqueantes: boolean;
 }
+
+// Contratos da página do lead (backend/app/api/jornadas.py: detalhe, visao-geral, auditoria, handoff).
+
+export type EstadoJornada =
+  | "CRIADA"
+  | "TRANSCRICAO_RECEBIDA"
+  | "EXTRAINDO"
+  | "FALHA_EXTRACAO"
+  | "EM_VALIDACAO"
+  | "VALIDADA"
+  | "HANDOFF_ENVIADO"
+  | "ACEITO"
+  | "BRIEFING_APROVADO"
+  | "CONCLUIDA";
+
+/** Gate liberado para quem está logado ou o motivo escrito do bloqueio. */
+export interface SituacaoGate {
+  liberado: boolean;
+  motivo: string | null;
+}
+
+export interface ResumoPacote {
+  acordados: number;
+  em_discussao: number;
+  bloqueantes: number;
+  secoes_preenchidas: number;
+  secoes_total: number;
+  faltam: string[];
+}
+
+export interface PacoteHandoff {
+  id: number;
+  jornada_id: number;
+  versao: number;
+  hash: string;
+  indice_completude: number;
+  gerente_id: number | null;
+  enviado_em: string | null;
+  resumo: ResumoPacote;
+}
+
+export interface DetalheJornada {
+  id: number;
+  cliente: string;
+  titulo: string;
+  estado: EstadoJornada;
+  lead_desde: string;
+  etapas: { etapa: EtapaKanban; situacao: "feita" | "atual" | "futura" }[];
+  gerente: { id: number; nome: string } | null;
+  analista: { id: number; nome: string; iniciais: string };
+  reunioes: { total: number; ultima: string | null };
+  completude: { preenchidas: number; total: number; percentual: number };
+  pendencias_abertas: { id: number; campo: string; descricao: string; severidade: string }[];
+  bloqueantes: number;
+  gates: Record<"G2" | "G3" | "G4", SituacaoGate>;
+  devolucao: { comentario: string; quando: string } | null;
+  handoff: PacoteHandoff | null;
+}
+
+export type NaturezaItem = "acordado" | "em_discussao" | "sugestao_ia";
+export type OrigemItem = "explicita" | "inferida" | "manual";
+
+export interface ItemSecao {
+  id: number;
+  descricao: string;
+  origem: OrigemItem;
+}
+
+/** Uma das 16 seções do pacote; itens ainda não decididos por pessoa ficam em `sugestao_ia`. */
+export interface SecaoVisaoGeral {
+  titulo: string;
+  acordado: ItemSecao[];
+  em_discussao: ItemSecao[];
+  sugestao_ia: ItemSecao[];
+  preenchida: boolean;
+}
+
+export interface VisaoGeral {
+  secoes: Record<string, SecaoVisaoGeral>;
+  nao_informados: string[];
+}
+
+export interface Evidencia {
+  item_id: number;
+  origem: OrigemItem;
+  evidencias: { segmento_ordem: number; trecho?: string; falante: string; texto: string }[];
+  aviso: string | null;
+}
+
+export interface RegistroAuditoria {
+  id: number;
+  quando: string;
+  autor: string;
+  acao: string;
+  entidade: string;
+  entidade_id: number | null;
+  antes: Record<string, unknown> | null;
+  depois: Record<string, unknown> | null;
+}
+
+export interface ReuniaoResumo {
+  id: number;
+  titulo: string;
+  tipo: TipoReuniao;
+  data_reuniao: string | null;
+  participantes: Participante[];
+  palavras: number;
+  segmentos: number;
+  dados_mascarados: number;
+}
+
+export interface DocumentoResumo {
+  id: number;
+  tipo: string;
+  versao: number;
+  status: "rascunho" | "aprovado";
+  criado_em: string;
+}
+
+export interface HistoricoDocumentacao {
+  documentos: DocumentoResumo[];
+  pacotes: PacoteHandoff[];
+  /** Tipos que só são gerados depois do aceite (briefing e pauta). */
+  apos_o_aceite: string[];
+}
+
+// --- Diretoria (tela 03) ---------------------------------------------------------
+
+export interface FiltrosPainel {
+  /** 0 = todo o período (a API só filtra por data quando dias > 0). */
+  dias: number;
+  analista_id: number | null;
+  gerente_id: number | null;
+}
+
+export interface ProjetoPainel {
+  id: number;
+  cliente: string;
+  titulo: string;
+  gerente: string | null;
+  estado: EstadoJornada;
+  etapa: string;
+}
+
+export interface PainelFunil {
+  kpis: {
+    leads_no_funil: number;
+    em_validacao: number;
+    handoffs_aguardando_aceite: number;
+    pendencias_bloqueantes: number;
+  };
+  funil: { etapa: string; total: number }[];
+  ia: { chamadas: number; tokens_entrada: number; tokens_saida: number; custo_estimado: number };
+  projetos: ProjetoPainel[];
+}
+
+export interface MatrizPermissoes {
+  perfis: { papel: Papel; perfil: string }[];
+  linhas: { acao: string; permitido: Partial<Record<Papel, boolean>> }[];
+  aviso: string;
+}
+
+export interface ConviteEntrada {
+  nome: string;
+  email: string;
+  papel: Papel;
+}
+
+export interface UsuarioPatch {
+  papel?: Papel;
+  ativo?: boolean;
+}

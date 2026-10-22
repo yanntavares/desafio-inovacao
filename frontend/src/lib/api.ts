@@ -1,5 +1,18 @@
 import type {
   CadastroEntrada,
+  ConviteEntrada,
+  FiltrosPainel,
+  MatrizPermissoes,
+  PainelFunil,
+  UsuarioPatch,
+  DetalheJornada,
+  EstadoJornada,
+  Evidencia,
+  HistoricoDocumentacao,
+  PacoteHandoff,
+  RegistroAuditoria,
+  ReuniaoResumo,
+  VisaoGeral,
   FiltrosKanban,
   LoginEntrada,
   OpcoesReuniao,
@@ -105,4 +118,45 @@ export const apiKanban = {
     const consulta = params.toString();
     return requisitar<RespostaKanban>(`/kanban${consulta ? `?${consulta}` : ""}`, { token });
   },
+};
+
+export const apiJornadas = {
+  detalhe: (token: string, id: number) => requisitar<DetalheJornada>(`/jornadas/${id}`, { token }),
+  visaoGeral: (token: string, id: number) => requisitar<VisaoGeral>(`/jornadas/${id}/visao-geral`, { token }),
+  auditoria: (token: string, id: number) => requisitar<RegistroAuditoria[]>(`/jornadas/${id}/auditoria`, { token }),
+  reunioes: (token: string, id: number) => requisitar<ReuniaoResumo[]>(`/jornadas/${id}/reunioes`, { token }),
+  documentos: (token: string, id: number) =>
+    requisitar<HistoricoDocumentacao>(`/jornadas/${id}/documentos`, { token }),
+  evidencia: (token: string, itemId: number) => requisitar<Evidencia>(`/itens/${itemId}/evidencia`, { token }),
+  enviarHandoff: (token: string, id: number, gerente_id: number) =>
+    requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
+  /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */
+  aceitarHandoff: (token: string, id: number, versao: number) =>
+    requisitar<{ estado: EstadoJornada; versao: number }>(`/jornadas/${id}/handoff/aceitar`, {
+      metodo: "POST",
+      corpo: { versao },
+      token,
+    }),
+  devolverHandoff: (token: string, id: number, comentario: string) =>
+    requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/handoff/devolver`, {
+      metodo: "POST",
+      corpo: { comentario },
+      token,
+    }),
+};
+
+export const apiDiretoria = {
+  painel: (token: string, { dias, analista_id, gerente_id }: FiltrosPainel) => {
+    const params = new URLSearchParams({ dias: String(dias) });
+    if (analista_id) params.set("analista_id", String(analista_id));
+    if (gerente_id) params.set("gerente_id", String(gerente_id));
+    return requisitar<PainelFunil>(`/painel/funil?${params}`, { token });
+  },
+  permissoes: (token: string) => requisitar<MatrizPermissoes>("/permissoes", { token }),
+  usuarios: (token: string) => requisitar<Usuario[]>("/usuarios", { token }),
+  convidar: (token: string, dados: ConviteEntrada) =>
+    requisitar<Usuario>("/usuarios/convidar", { metodo: "POST", corpo: dados, token }),
+  /** A API recusa, por exemplo, desativar ou rebaixar a última conta da Diretoria. */
+  atualizarUsuario: (token: string, id: number, dados: UsuarioPatch) =>
+    requisitar<Usuario>(`/usuarios/${id}`, { metodo: "PATCH", corpo: dados, token }),
 };
