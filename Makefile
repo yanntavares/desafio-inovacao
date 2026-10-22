@@ -1,4 +1,4 @@
-.PHONY: setup up down logs test test-pg migrate revision
+.PHONY: setup up down logs test test-pg e2e migrate revision
 
 -include .env
 POSTGRES_USER ?= handoff
@@ -32,3 +32,6 @@ migrate:
 # make revision m="descricao"
 revision:
 	docker compose exec api alembic revision --autogenerate -m "$(m)"
+
+e2e: ## testes do front no navegador (Playwright); a stack precisa estar no ar (make up)
+	cd e2e && npm install --no-audit --no-fund && npx playwright test
