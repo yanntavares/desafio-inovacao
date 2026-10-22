@@ -8,6 +8,26 @@
 
 
 
+## 0. Estado (conciliação com a branch `feature/frontend-telas-auth-kanban-reuniao-lead`)
+
+Branch `feature/frontend-conciliado`, a partir desta (`feature/frontend-telas`). Base é esta branch; entram o visual e as funções da outra.
+
+**Feito e conferido** (tsc e lint limpos no container; telas renderizadas no Edge headless, logadas por perfil):
+- **Login:** entrada em **1 clique** nos cards do Modo demonstração (`POST /auth/demo`, sem preencher e-mail); layout sem borda rasgada, só faixas discretas. Testado: clique em "Gerente de projetos" entrou como `rafael.lima` e foi a `/kanban/geral`.
+- **Cadastro e menu lateral:** sem borda rasgada (`marca/recorte.ts` removido). Menu de 240 px como no mock.
+- **Kanban (analista e geral):** colunas cinza-azuladas, cards compactos com contorno e hover (destaque do fundo), títulos das colunas sem corte. **Atualização automática** (`lib/useLeitura.ts`): 5 s com card "Extraindo…", 30 s no resto, só com a aba visível; rodapé "Atualizado às HH:MM:SS".
+- **Cabeçalho:** busca rápida (`GET /busca`, a partir de 2 letras), sino de notificações (`GET /notificacoes` a cada 30 s; abrir marca como lidas) e migalha "Kanban › Página do lead" nas páginas de lead.
+- Selects dos filtros com sombra e borda azul no hover.
+
+**Não portado, de propósito:** a página do lead desta branch já tem evidência a um clique, stepper, painel G3 e histórico; a versão da outra branch não foi trazida.
+
+**Pendências e riscos**
+- `/historico` continua placeholder ("Tela em implementação") nas duas branches; o back já serve `GET /kanban?concluidas=true`.
+- Sem tela de revisão G2 (confirmar/editar/rejeitar itens, resolver pendências) nem de documentos/G4, como antes.
+- Não verificado: troca de perfil pelo seletor do menu, abrir notificações e busca com resultado na interface (só renderização e o fluxo de login).
+- **Cache do Next no Windows:** o bind mount não dispara recompilação de arquivos já compilados. Se uma edição não aparecer, rode `docker compose exec frontend sh -c 'rm -rf .next/*'` e `docker compose restart frontend`.
+- O front não tem testes automatizados; a conferência é visual e por lint/tsc.
+
 ## 1. Mapeamento de Telas Prototipadas vs. Rotas e Endpoints
 
 A tabela abaixo conecta diretamente os protótipos visuais aos seus respectivos caminhos de navegação no front-end, perfis de acesso autorizados e rotas da API back-end:

@@ -1,7 +1,7 @@
 import { IconeSeta } from "@/components/icones";
 
 const CLASSE_SELECT =
-  "h-12 appearance-none rounded-lg border border-slate-300 bg-white pl-4 pr-11 text-[15px] font-semibold text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-not-allowed disabled:opacity-100";
+  "h-12 appearance-none rounded-lg border border-slate-300 bg-white shadow-sm hover:border-azul pl-4 pr-11 text-[15px] font-semibold text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-not-allowed disabled:opacity-100";
 
 /** Select de filtro sem rótulo visível (barras de filtro do kanban e da Diretoria). */
 export function SelecaoFiltro({

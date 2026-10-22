@@ -8,13 +8,11 @@ import { CampoTexto } from "@/components/formulario/CampoTexto";
 import { IconeCheck, IconeCheckCirculo } from "@/components/icones";
 import { SetasDecorativas } from "@/components/marca/Decoracoes";
 import { Logo } from "@/components/marca/Logo";
-import { clipRecortado } from "@/components/marca/recorte";
 import { apiAuth, DOMINIO_EMAIL, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRedirecionarSeLogado } from "@/lib/auth/guardas";
 
 const SENHA_MINIMO = 10;
-const CLIP_PAINEL = clipRecortado({ esquerda: true, direita: true, baixo: true }, 5, 11);
 
 interface Campos {
   nome: string;
@@ -91,10 +89,7 @@ export default function CadastroPage() {
 
       <div className="relative z-10 grid flex-1 gap-10 lg:grid-cols-[minmax(0,37%)_1fr] lg:gap-16 lg:pl-[5%] lg:pr-[4%]">
         {/* Painel da marca */}
-        <section
-          className="flex flex-col bg-lima px-8 pb-10 pt-12 text-azul-escuro lg:h-[77vh] lg:min-h-[640px] lg:px-14 lg:pt-16"
-          style={{ clipPath: CLIP_PAINEL }}
-        >
+        <section className="flex flex-col bg-lima px-8 pb-10 pt-12 text-azul-escuro lg:h-[77vh] lg:min-h-[640px] lg:px-14 lg:pt-16">
           <Logo variante="azul" prioridade className="h-12 w-auto self-start lg:h-14" />
 
           <div className="mt-12 lg:mt-auto lg:mb-auto">

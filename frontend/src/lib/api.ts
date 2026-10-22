@@ -14,7 +14,9 @@ import type {
   ReuniaoResumo,
   VisaoGeral,
   FiltrosKanban,
+  LeadEncontrado,
   LoginEntrada,
+  Notificacao,
   OpcoesReuniao,
   Papel,
   PerfilDemo,
@@ -159,4 +161,15 @@ export const apiDiretoria = {
   /** A API recusa, por exemplo, desativar ou rebaixar a última conta da Diretoria. */
   atualizarUsuario: (token: string, id: number, dados: UsuarioPatch) =>
     requisitar<Usuario>(`/usuarios/${id}`, { metodo: "PATCH", corpo: dados, token }),
+};
+
+export const apiBusca = {
+  /** A API só devolve leads que o perfil pode ver. */
+  leads: (token: string, texto: string) =>
+    requisitar<{ leads: LeadEncontrado[] }>(`/busca?q=${encodeURIComponent(texto)}`, { token }),
+};
+
+export const apiNotificacoes = {
+  listar: (token: string) => requisitar<{ itens: Notificacao[] }>("/notificacoes", { token }),
+  marcarLidas: (token: string) => requisitar<unknown>("/notificacoes/lidas", { metodo: "POST", token }),
 };

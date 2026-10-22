@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLeitura } from "@/lib/useLeitura";
 import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { IconeCadeado, IconeMais } from "@/components/icones";
-import { apiKanban, apiReunioes, ErroApi } from "@/lib/api";
+import { apiKanban, apiReunioes } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { FiltrosKanban as Filtros, LeadOpcao, RespostaKanban, UsuarioOpcao } from "@/lib/tipos";
 import { ColunaKanban } from "./ColunaKanban";
@@ -19,10 +20,6 @@ interface QuadroKanbanProps {
 
 const FILTROS_INICIAIS: Filtros = { analista_id: null, negocio_id: null, so_bloqueantes: false };
 
-function mensagemDe(erro: unknown, padrao: string): string {
-  return erro instanceof ErroApi ? erro.message : padrao;
-}
-
 export function QuadroKanban({ titulo, subtitulo, comCadastrarReuniao = false }: QuadroKanbanProps) {
   const { sessao } = useAuth();
   // O layout (app) só renderiza a página com sessão; o "!" reflete essa garantia.
@@ -31,10 +28,8 @@ export function QuadroKanban({ titulo, subtitulo, comCadastrarReuniao = false }:
   const ehAnalista = usuario.papel === "comercial";
 
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
-  const [quadro, setQuadro] = useState<RespostaKanban | null>(null);
   const [analistas, setAnalistas] = useState<UsuarioOpcao[]>([]);
   const [negocios, setNegocios] = useState<LeadOpcao[]>([]);
-  const [erro, setErro] = useState<string | null>(null);
 
   // Opções dos filtros: uma vez por sessão. Falha aqui não impede ver o quadro.
   useEffect(() => {
@@ -54,20 +49,13 @@ export function QuadroKanban({ titulo, subtitulo, comCadastrarReuniao = false }:
     };
   }, [token, ehAnalista]);
 
-  useEffect(() => {
-    let ativo = true; // descarta respostas de filtros já trocados
-    apiKanban
-      .listar(token, filtros)
-      .then((r) => {
-        if (!ativo) return;
-        setQuadro(r);
-        setErro(null);
-      })
-      .catch((e: unknown) => ativo && setErro(mensagemDe(e, "Não foi possível carregar o kanban. Recarregue a página.")));
-    return () => {
-      ativo = false;
-    };
-  }, [token, filtros]);
+  // 5 s enquanto algum card está "Extraindo…" (o worker muda a coluna sozinho), 30 s no resto.
+  const { dados: quadro, erro: falha, atualizadoEm } = useLeitura<RespostaKanban>(
+    `kanban:${token}:${JSON.stringify(filtros)}`,
+    () => apiKanban.listar(token, filtros),
+    { intervaloMs: (d) => (d?.colunas.some((c) => c.cards.some((card) => card.extraindo)) ? 5_000 : 30_000) },
+  );
+  const erro = falha && !quadro ? falha : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,8 +97,8 @@ export function QuadroKanban({ titulo, subtitulo, comCadastrarReuniao = false }:
         </p>
       ) : (
         quadro && (
-          <div className="-mx-6 overflow-x-auto px-6 pb-2 lg:-mx-12 lg:px-12 xl:mx-0 xl:overflow-visible xl:px-0">
-            <div className="flex min-h-[60vh] gap-4 xl:grid xl:grid-cols-6">
+          <div className="-mx-6 overflow-x-auto px-6 pb-2 lg:-mx-8 lg:px-8 xl:mx-0 xl:overflow-visible xl:px-0">
+            <div className="flex min-h-[60vh] gap-3 xl:grid xl:grid-cols-6">
               {quadro.colunas.map((coluna) => (
                 <ColunaKanban key={coluna.etapa} coluna={coluna} />
               ))}
@@ -119,7 +107,10 @@ export function QuadroKanban({ titulo, subtitulo, comCadastrarReuniao = false }:
         )
       )}
 
-      <p className="text-xs text-cinza">Etapas = estados da jornada. Jornadas concluídas ficam no histórico.</p>
+      <p className="text-xs text-cinza">
+        Etapas = estados da jornada. Jornadas concluídas ficam no histórico.
+        {atualizadoEm && ` Atualizado às ${atualizadoEm.toLocaleTimeString("pt-BR")}.`}
+      </p>
     </div>
   );
 }

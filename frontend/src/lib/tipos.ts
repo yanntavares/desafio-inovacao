@@ -303,3 +303,17 @@ export interface UsuarioPatch {
   papel?: Papel;
   ativo?: boolean;
 }
+
+export interface LeadEncontrado {
+  id: number;
+  cliente: string;
+  titulo: string;
+}
+
+export interface Notificacao {
+  id: number;
+  quando: string;
+  texto: string;
+  jornada_id: number | null;
+  lida: boolean;
+}

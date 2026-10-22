@@ -20,7 +20,7 @@ export function CampoSelecao({ rotulo, ajuda, className = "", children, ...props
         <select
           id={id}
           aria-describedby={ajuda ? idAjuda : undefined}
-          className="h-12 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-4 pr-11 text-[15px] text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-cinza"
+          className="h-12 w-full appearance-none rounded-lg border border-slate-300 bg-white shadow-sm hover:border-azul pl-4 pr-11 text-[15px] text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-cinza"
           {...props}
         >
           {children}

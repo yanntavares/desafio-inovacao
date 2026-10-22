@@ -14,7 +14,7 @@ export default function LayoutAutenticado({ children }: { children: React.ReactN
       <SidebarNav />
       <div className="flex min-w-0 flex-1 flex-col">
         <HeaderBreadcrumb />
-        <main className="flex-1 px-6 py-8 lg:px-12">{children}</main>
+        <main className="flex-1 px-6 py-8 lg:px-8 xl:px-10">{children}</main>
       </div>
     </div>
   );

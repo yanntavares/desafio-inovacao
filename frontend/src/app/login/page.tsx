@@ -7,15 +7,15 @@ import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { BotaoPrimario } from "@/components/formulario/BotaoPrimario";
 import { CampoTexto } from "@/components/formulario/CampoTexto";
 import { IconeCheckCirculo } from "@/components/icones";
-import { FaixasDiagonais } from "@/components/marca/Decoracoes";
 import { Logo } from "@/components/marca/Logo";
-import { clipRecortado } from "@/components/marca/recorte";
 import { apiAuth, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useRedirecionarSeLogado } from "@/lib/auth/guardas";
 import type { PerfilDemo } from "@/lib/tipos";
 
-const CLIP_PAINEL = clipRecortado({ esquerda: true, direita: true }, 5, 3);
+// Faixas discretas do painel da marca (tela 02), sem recorte nas bordas.
+const FAIXAS =
+  "repeating-linear-gradient(-35deg, transparent 0 70px, rgba(5,99,180,.18) 70px 82px, transparent 82px 150px, rgba(219,234,53,.10) 150px 160px)";
 
 const BENEFICIOS = [
   "Dados estruturados e verificáveis",
@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [demo, setDemo] = useState<EstadoDemo>({ tipo: "carregando" });
-  const [selecionado, setSelecionado] = useState<PerfilDemo | null>(null);
+  const [perfilEntrando, setPerfilEntrando] = useState<PerfilDemo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -47,35 +47,30 @@ export default function LoginPage() {
     };
   }, []);
 
-  function selecionarPerfil(perfil: PerfilDemo) {
+  async function entrarComoPerfil(perfil: PerfilDemo) {
     setErro(null);
-    if (selecionado?.papel === perfil.papel) {
-      setSelecionado(null);
-      setEmail("");
-      return;
+    setPerfilEntrando(perfil);
+    setEnviando(true);
+    try {
+      entrar(await apiAuth.entrarDemo(perfil.papel), true);
+      // o redirecionamento vem de useRedirecionarSeLogado
+    } catch (e) {
+      setErro(e instanceof ErroApi ? e.message : "Não foi possível entrar. Tente de novo.");
+      setPerfilEntrando(null);
+      setEnviando(false);
     }
-    setSelecionado(perfil);
-    setEmail(perfil.email);
-    setSenha("");
-  }
-
-  function alterarEmail(valor: string) {
-    setEmail(valor);
-    if (selecionado) setSelecionado(null); // digitou outro e-mail: volta ao login normal
   }
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setErro(null);
-    if (!selecionado && (!email.trim() || !senha)) {
+    if (!email.trim() || !senha) {
       setErro("Informe e-mail e senha para entrar.");
       return;
     }
     setEnviando(true);
     try {
-      if (selecionado) entrar(await apiAuth.entrarDemo(selecionado.papel), true);
-      else entrar(await apiAuth.entrar({ email: email.trim(), senha }));
-      // o redirecionamento vem de useRedirecionarSeLogado
+      entrar(await apiAuth.entrar({ email: email.trim(), senha }));
     } catch (e) {
       setErro(e instanceof ErroApi ? e.message : "Não foi possível entrar. Tente de novo.");
       setEnviando(false);
@@ -85,8 +80,10 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen bg-marinho lg:grid-cols-[37%_1fr]">
       {/* Painel da marca */}
-      <section className="relative flex flex-col overflow-hidden px-8 py-10 text-white lg:px-[12%] lg:py-14">
-        <FaixasDiagonais />
+      <section
+        className="relative flex flex-col overflow-hidden px-8 py-10 text-white lg:px-[12%] lg:py-14"
+        style={{ backgroundImage: FAIXAS }}
+      >
         <Logo variante="verde" prioridade className="relative h-12 w-auto self-start lg:h-14" />
 
         <div className="relative mt-12 lg:my-auto">
@@ -112,10 +109,7 @@ export default function LoginPage() {
 
       {/* Formulário */}
       <section className="flex lg:pr-[8.5%]">
-        <div
-          className="flex flex-1 justify-center bg-lima px-6 pb-14 pt-12 sm:px-12 lg:px-[11%] lg:pt-20"
-          style={{ clipPath: CLIP_PAINEL }}
-        >
+        <div className="flex flex-1 justify-center bg-lima px-6 pb-14 pt-12 sm:px-12 lg:px-[11%] lg:pt-20">
           <div className="w-full max-w-3xl">
             <header className="border-l-4 border-azul-escuro pl-4">
               <h2 className="text-4xl font-extrabold text-azul-escuro">Entrar</h2>
@@ -130,7 +124,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="username"
                   value={email}
-                  onChange={(e) => alterarEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
                 <CampoTexto
                   tom="sobreLima"
@@ -139,8 +133,6 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  disabled={Boolean(selecionado)}
-                  placeholder={selecionado ? "Não é necessária no modo demonstração" : undefined}
                 />
               </div>
               <div className="mt-3 text-right">
@@ -156,8 +148,8 @@ export default function LoginPage() {
 
               <div className="mt-6 space-y-4">
                 <AlertaErro mensagem={erro} />
-                <BotaoPrimario type="submit" carregando={enviando} textoCarregando="Entrando…">
-                  {selecionado ? `Entrar como ${selecionado.papel === "admin" ? "Diretoria" : selecionado.nome}` : "Entrar"}
+                <BotaoPrimario type="submit" carregando={enviando && !perfilEntrando} disabled={enviando} textoCarregando="Entrando…">
+                  Entrar
                 </BotaoPrimario>
               </div>
             </form>
@@ -178,15 +170,16 @@ export default function LoginPage() {
                 </div>
                 <p className="mt-8 text-sm font-bold text-tinta/80">Entrar com dados fictícios como:</p>
 
-                <div role="radiogroup" aria-labelledby="titulo-demo" className="mt-4 space-y-3">
+                <div role="group" aria-labelledby="titulo-demo" className="mt-4 space-y-3">
                   {demo.tipo === "carregando"
                     ? [0, 1, 2].map((i) => <div key={i} className="h-[84px] animate-pulse rounded-xl bg-white/60" />)
                     : demo.perfis.map((p) => (
                         <CartaoPerfilDemo
                           key={p.papel}
                           perfil={p}
-                          selecionado={selecionado?.papel === p.papel}
-                          onSelecionar={() => selecionarPerfil(p)}
+                          entrando={perfilEntrando?.papel === p.papel}
+                          desabilitado={enviando}
+                          onEntrar={() => entrarComoPerfil(p)}
                         />
                       ))}
                 </div>

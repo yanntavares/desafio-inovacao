@@ -21,42 +21,42 @@ export function CardLead({ card }: { card: DadosCard }) {
   return (
     <Link
       href={`/jornadas/${card.id}`}
-      className={`block rounded-xl border-2 bg-white p-4 shadow-[0_1px_2px_rgba(15,27,45,0.06)] transition hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/30 ${
-        temBloqueio ? "border-lima" : "border-transparent"
+      className={`block rounded-xl border-2 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-azul hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/30 ${
+        temBloqueio ? "border-lima" : "border-slate-300"
       }`}
     >
       <p className="font-bold leading-tight text-tinta">{card.cliente}</p>
-      <p className="mt-1 truncate text-sm text-cinza">{card.titulo}</p>
+      <p className="mt-0.5 truncate text-sm text-cinza">{card.titulo}</p>
 
-      <div className="mt-3 flex items-center gap-2 text-[15px] text-tinta">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-azul-suave text-[11px] font-bold text-azul-escuro">
+      <div className="mt-2.5 flex items-center gap-2 text-sm text-tinta">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-azul-suave text-[10px] font-bold text-azul-escuro">
           {card.analista.iniciais}
         </span>
         <span title={card.analista.nome}>{primeiroNome(card.analista.nome)}</span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-tinta">{card.reunioes} reun.</span>
+      <div className="mt-2.5 flex flex-wrap gap-1.5 text-xs font-semibold">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-tinta">{card.reunioes} reun.</span>
         {temBloqueio && (
           <span
             title={`${card.bloqueantes} pendência(s) bloqueante(s) aberta(s): impedem a validação (G2).`}
-            className="rounded-full bg-lima px-2.5 py-1 text-azul-escuro"
+            className="rounded-full bg-lima px-2 py-0.5 text-azul-escuro"
           >
             {card.bloqueantes} bloq.
           </span>
         )}
-        {card.extraindo && <span className="rounded-full bg-azul-suave px-2.5 py-1 text-azul">Extraindo…</span>}
+        {card.extraindo && <span className="rounded-full bg-azul-suave px-2 py-0.5 text-azul">Extraindo…</span>}
         {card.falha_extracao && (
           <span
             title="A extração falhou. Abra o lead para tentar de novo."
-            className="rounded-full bg-perigo-suave px-2.5 py-1 text-perigo"
+            className="rounded-full bg-perigo-suave px-2 py-0.5 text-perigo"
           >
             Falha na extração
           </span>
         )}
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3">
         <div
           role="progressbar"
           aria-label="Completude do pacote"

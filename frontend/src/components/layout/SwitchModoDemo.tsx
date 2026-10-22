@@ -22,7 +22,7 @@ export function SwitchModoDemo() {
 
   if (!sessao.demo) {
     return (
-      <div className="rounded-lg bg-azul px-4 py-2.5 text-[15px] font-bold text-white">{ROTULO_PAPEL[papel]}</div>
+      <div className="rounded-lg bg-azul px-3 py-2.5 text-sm font-bold text-white">{ROTULO_PAPEL[papel]}</div>
     );
   }
 
@@ -51,7 +51,7 @@ export function SwitchModoDemo() {
           value={papel}
           disabled={trocando}
           onChange={(e) => trocar(e.target.value as Papel)}
-          className="h-11 w-full cursor-pointer appearance-none rounded-lg bg-azul pl-4 pr-10 text-[15px] font-bold text-white outline-none focus-visible:ring-2 focus-visible:ring-lima disabled:cursor-wait disabled:opacity-70"
+          className="h-11 w-full cursor-pointer appearance-none rounded-lg bg-azul pl-3 pr-9 text-sm font-bold text-white outline-none focus-visible:ring-2 focus-visible:ring-lima disabled:cursor-wait disabled:opacity-70"
         >
           {PAPEIS_DEMO.map((p) => (
             <option key={p} value={p} className="bg-white text-tinta">

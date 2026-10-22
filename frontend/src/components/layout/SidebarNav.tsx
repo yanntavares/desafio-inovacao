@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation";
 import { IconeSair } from "@/components/icones";
 import { FaixasDiagonais } from "@/components/marca/Decoracoes";
 import { Logo } from "@/components/marca/Logo";
-import { clipRecortado } from "@/components/marca/recorte";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { iniciais, MENU_POR_PAPEL } from "@/lib/rotas";
 import { SwitchModoDemo } from "./SwitchModoDemo";
-
-const CLIP_SIDEBAR = clipRecortado({ direita: true }, 4, 5);
 
 export function SidebarNav() {
   const { sessao, sair } = useAuth();
@@ -20,10 +17,7 @@ export function SidebarNav() {
   const itens = MENU_POR_PAPEL[usuario.papel];
 
   return (
-    <aside
-      className="relative flex shrink-0 flex-col overflow-hidden bg-marinho px-5 pb-6 pt-8 text-white lg:sticky lg:top-0 lg:h-screen lg:w-72"
-      style={{ clipPath: CLIP_SIDEBAR }}
-    >
+    <aside className="relative flex shrink-0 flex-col overflow-hidden bg-marinho px-5 pb-6 pt-8 text-white lg:sticky lg:top-0 lg:h-screen lg:w-60">
       {usuario.papel === "admin" && <FaixasDiagonais className="opacity-60" />}
 
       <Link href={itens[0].href} className="relative self-start">
@@ -40,7 +34,7 @@ export function SidebarNav() {
                 <Link
                   href={item.href}
                   aria-current={ativo ? "page" : undefined}
-                  className={`relative flex items-center gap-4 rounded-lg px-5 py-3 text-[17px] transition ${
+                  className={`relative flex items-center gap-3 rounded-lg px-4 py-3 text-base whitespace-nowrap transition ${
                     ativo ? "bg-azul-escuro font-bold" : "text-white/85 hover:bg-white/5"
                   }`}
                 >
