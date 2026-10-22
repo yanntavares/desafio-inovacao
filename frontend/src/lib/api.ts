@@ -1,10 +1,14 @@
 import type {
   CadastroEntrada,
   LoginEntrada,
+  OpcoesReuniao,
   Papel,
   PerfilDemo,
+  PreVisualizacao,
+  ReuniaoCadastrada,
   RespostaSessao,
   Usuario,
+  UsuarioOpcao,
 } from "./tipos";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -40,8 +44,10 @@ function mensagemDoDetalhe(detail: unknown): string | null {
 }
 
 export async function requisitar<T>(caminho: string, { metodo = "GET", corpo, token }: Opcoes = {}): Promise<T> {
+  // FormData (upload de transcrição) segue como multipart; o navegador define o boundary.
+  const multipart = corpo instanceof FormData;
   const cabecalhos: Record<string, string> = { Accept: "application/json" };
-  if (corpo !== undefined) cabecalhos["Content-Type"] = "application/json";
+  if (corpo !== undefined && !multipart) cabecalhos["Content-Type"] = "application/json";
   if (token) cabecalhos.Authorization = `Bearer ${token}`;
 
   let resposta: Response;
@@ -49,7 +55,7 @@ export async function requisitar<T>(caminho: string, { metodo = "GET", corpo, to
     resposta = await fetch(`${API_URL}${caminho}`, {
       method: metodo,
       headers: cabecalhos,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      body: corpo === undefined ? undefined : multipart ? corpo : JSON.stringify(corpo),
     });
   } catch {
     throw new ErroApi("Não foi possível falar com o servidor. Verifique a conexão e tente de novo.", 0);
@@ -75,4 +81,14 @@ export const apiAuth = {
   eu: (token: string) => requisitar<Usuario>("/auth/me", { token }),
   perfisDemo: () => requisitar<PerfilDemo[]>("/auth/demo"),
   entrarDemo: (papel: Papel) => requisitar<RespostaSessao>("/auth/demo", { metodo: "POST", corpo: { papel } }),
+};
+
+export const apiReunioes = {
+  opcoes: (token: string) => requisitar<OpcoesReuniao>("/reunioes/opcoes", { token }),
+  usuarios: (token: string) => requisitar<UsuarioOpcao[]>("/usuarios/opcoes", { token }),
+  /** Não grava nada: devolve palavras, segmentos e quantos dados serão mascarados. */
+  preVisualizar: (token: string, transcricao: FormData) =>
+    requisitar<PreVisualizacao>("/reunioes/pre-visualizar", { metodo: "POST", corpo: transcricao, token }),
+  cadastrar: (token: string, dados: FormData) =>
+    requisitar<ReuniaoCadastrada>("/reunioes", { metodo: "POST", corpo: dados, token }),
 };

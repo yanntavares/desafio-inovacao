@@ -39,3 +39,50 @@ export interface LoginEntrada {
   email: string;
   senha: string;
 }
+
+// Contratos do cadastro de reunião (backend/app/api/jornadas.py, services/matriz.py).
+
+export type TipoReuniao = "exploratoria" | "aprofundamento" | "alinhamento" | "fechamento";
+
+export interface LeadOpcao {
+  id: number;
+  cliente: string;
+  titulo: string;
+  responsavel_id: number;
+  /** false depois do handoff: o lead não recebe novas reuniões. */
+  aceita_reuniao: boolean;
+}
+
+export interface OpcoesReuniao {
+  tipos: TipoReuniao[];
+  leads: LeadOpcao[];
+}
+
+export interface UsuarioOpcao {
+  id: number;
+  nome: string;
+  papel: Papel;
+}
+
+export interface Participante {
+  nome: string;
+  cliente: boolean;
+}
+
+export interface PreVisualizacao {
+  formato: string;
+  palavras: number;
+  segmentos: number;
+  dados_mascarados: number;
+  limite_palavras: number;
+}
+
+export interface ReuniaoCadastrada {
+  jornada_id: number;
+  reuniao_id: number;
+  estado: string;
+  palavras: number;
+  segmentos: number;
+  dados_mascarados: number;
+  formato: string;
+}

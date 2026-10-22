@@ -42,3 +42,37 @@ export function IconeSair(props: PropsIcone) {
     </svg>
   );
 }
+
+export function IconeMais(props: PropsIcone) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} aria-hidden {...props}>
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconeFechar(props: PropsIcone) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} aria-hidden {...props}>
+      <path d="M7 7l10 10M17 7L7 17" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconeCadeado(props: PropsIcone) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden {...props}>
+      <rect x={4.5} y={10.5} width={15} height={10} rx={2} />
+      <path d="M8 10.5V7.5a4 4 0 018 0v3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Círculo vazio: obrigatório ainda não preenchido no checklist. */
+export function IconeCirculoVazio(props: PropsIcone) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden {...props}>
+      <circle cx={12} cy={12} r={10} />
+    </svg>
+  );
+}

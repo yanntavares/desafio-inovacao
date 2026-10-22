@@ -1,6 +1,6 @@
 # Plano de Implementação do Front-end 
 
-> **Estado em:** 21/10/2026
+> **Estado em:** 22/10/2026
 >
 > **Entrega Alvo:** 22/10/2026 (Meta Interna)
 >
@@ -114,8 +114,20 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas 
 * **`/cadastro`:** validação nativa espelhando `usuarios.cadastrar_conta` (nome, domínio do e-mail, senha com 10+ caracteres, letras e números, confirmação, LGPD). O erro da API aparece em alerta. A conta entra como analista e é redirecionada.
 * **`/login`:** e-mail e senha; "Esqueci a senha" desabilitado com o motivo no `title`. **Modo demonstração** carregado de `GET /auth/demo`; a seção some quando a API responde 404 (`DEMO_MODE` desligado). *Decisão:* clicar no perfil **seleciona e preenche** o e-mail (a senha fica desabilitada) e o botão "Entrar como …" confirma via `POST /auth/demo`. Digitar outro e-mail desfaz a seleção.
 * **Shell `(app)`:** `SidebarNav` com menu por papel (`lib/rotas.ts`, espelhando as telas 03/04/04b), `SwitchModoDemo` no rodapé (troca o papel na hora só em sessão de demonstração; fora dela mostra o perfil fixo), `HeaderBreadcrumb` e botão Sair. Rota inicial: analista → `/kanban/meus-leads`, gerente e técnico → `/kanban/geral`, Diretoria → `/diretoria`.
-* **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/reunioes/cadastrar`, `/historico`.
+* **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/historico` e `/jornadas/[id]` (destino após cadastrar reunião; `export const instant = false` porque o layout `(app)` lê `usePathname` fora de `<Suspense>`).
 * **Identidade:** tokens de cor no `@theme` de `globals.css` (marinho, lima, azul), Inter via `next/font`, borda recortada por `clip-path` com semente fixa (`components/marca/recorte.ts`) e ícones em SVG inline (`components/icones.tsx`), sem novas dependências.
+
+### Já existe — Cadastro e pré-visualização de reunião (`05`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Rota:** `/reunioes/cadastrar` (grupo `(app)`), para analista e gerente; o breadcrumb passou a mostrar "Kanban de leads › Cadastrar reunião" nas páginas internas.
+* **Dados:** `GET /reunioes/opcoes` (leads e tipos) e `GET /usuarios/opcoes` (filtrado para analistas) em paralelo; `apiReunioes` em `lib/api.ts`. `requisitar` agora aceita `FormData` (multipart, sem `Content-Type` manual).
+* **1. Lead e negócio:** alternância "Lead existente / Novo lead". Leads que não aceitam reunião (já enviados ao gerente) aparecem desabilitados; sem lead aberto, a tela abre em "Novo lead". Escolher o lead preenche o nome do negócio (editável).
+* **2. Dados da reunião:** analista travado com o motivo escrito (analista só cadastra para si; lead existente fixa o analista do lead, como exige a API). Data padrão = hoje; tipos com rótulos (`exploratoria` → "Exploratória (1ª reunião)"). Participantes em chips com inclusão inline e marcação "do cliente"; o analista logado entra por padrão.
+* **3. Transcrição:** "Enviar arquivo" (.txt/.md/.vtt/.srt) ou "Colar texto". *Decisão:* `POST /reunioes/pre-visualizar` roda automaticamente ao escolher o arquivo e com debounce de 800 ms ao colar; respostas antigas são descartadas por contador. O cartão mostra palavras, segmentos, limite, "Formato válido" e quantos dados pessoais serão mascarados; o erro da API aparece no lugar.
+* **Checklist 7/7** derivado do estado (transcrição só conta com pré-visualização válida). "Cadastrar e processar" fica desabilitado com o motivo escrito abaixo; o envio vai em multipart para `POST /reunioes` e redireciona para `/jornadas/{id}`.
+* **Componentes novos:** `formulario/CampoSelecao`, `formulario/GrupoAlternancia`, `reuniao/UploadTranscricao`, `reuniao/CheckListObrigatorios`, `reuniao/CampoParticipantes`, `reuniao/PainelLateralReuniao`; `CampoTexto` ganhou o tom `sobreBranco`. Formulário com `useState`, sem nova dependência.
 
 ### Riscos e pendências
 
@@ -123,6 +135,8 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas 
 * `CORS_ORIGENS` do back precisa incluir a origem do front (padrão `http://localhost:3000`).
 * Falta conferir a fidelidade visual das telas 01 e 02 no navegador e o fluxo ponta a ponta com o seed (`python -m app.seed`).
 * O perfil técnico não tem tela própria; usa o kanban geral em leitura.
+* Cadastro de reunião: falta conferir no navegador contra a API (upload multipart, CORS com `Authorization`) e a fidelidade visual da tela 05. A pré-visualização envia o arquivo inteiro a cada troca; aceitável no limite de 15 mil palavras.
+* O botão "Cancelar" descarta o formulário sem confirmação.
 
 ## 4. Regras Visuais e Trava de Invariantes
 

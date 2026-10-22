@@ -11,8 +11,11 @@ export function HeaderBreadcrumb() {
   if (!sessao) return null;
   const { usuario } = sessao;
 
-  const atual = MENU_POR_PAPEL[usuario.papel].find((i) => caminho === i.href || caminho.startsWith(`${i.href}/`));
-  const trilha = [...(usuario.papel === "admin" ? ["Diretoria"] : []), atual?.rotulo ?? "Ponte"];
+  const menu = MENU_POR_PAPEL[usuario.papel];
+  const atual = menu.find((i) => caminho === i.href || caminho.startsWith(`${i.href}/`));
+  // Telas 05/06: as páginas internas partem do kanban ("Kanban de leads › Cadastrar reunião").
+  const raiz = usuario.papel === "admin" ? ["Diretoria"] : atual && atual !== menu[0] ? [menu[0].rotulo] : [];
+  const trilha = [...raiz, atual?.rotulo ?? "Ponte"];
 
   return (
     <header className="sticky top-0 z-10 flex h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 shadow-[0_2px_4px_rgba(15,27,45,0.06)] lg:px-12">

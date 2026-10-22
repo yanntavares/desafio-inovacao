@@ -2,19 +2,23 @@ import { useId } from "react";
 
 interface CampoTextoProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "id"> {
   rotulo: string;
-  /** "sobreMarinho": rótulo lima (tela 01); "sobreLima": rótulo marinho (tela 02). */
-  tom: "sobreMarinho" | "sobreLima";
+  /** "sobreMarinho": rótulo lima (tela 01); "sobreLima": rótulo marinho (tela 02); "sobreBranco": telas internas. */
+  tom: "sobreMarinho" | "sobreLima" | "sobreBranco";
   erro?: string | null;
 }
 
-const COR_ROTULO = { sobreMarinho: "text-lima", sobreLima: "text-azul-escuro" };
+const COR_ROTULO = {
+  sobreMarinho: "font-bold text-lima",
+  sobreLima: "font-bold text-azul-escuro",
+  sobreBranco: "font-semibold text-tinta",
+};
 
 export function CampoTexto({ rotulo, tom, erro, className = "", ...props }: CampoTextoProps) {
   const id = useId();
   const idErro = `${id}-erro`;
   return (
     <div className={className}>
-      <label htmlFor={id} className={`mb-1.5 block text-sm font-bold ${COR_ROTULO[tom]}`}>
+      <label htmlFor={id} className={`mb-1.5 block text-sm ${COR_ROTULO[tom]}`}>
         {rotulo}
       </label>
       <input
