@@ -86,3 +86,48 @@ export interface ReuniaoCadastrada {
   dados_mascarados: number;
   formato: string;
 }
+
+// Contratos do kanban (backend/app/services/jornadas.py: kanban e _card).
+
+export type EtapaKanban =
+  | "Nova reunião"
+  | "Em validação"
+  | "Validada"
+  | "Handoff enviado"
+  | "Aceito"
+  | "Briefing aprovado"
+  | "Concluída";
+
+export interface CardLead {
+  id: number;
+  cliente: string;
+  titulo: string;
+  estado: string;
+  analista: { id: number; nome: string; iniciais: string };
+  reunioes: number;
+  bloqueantes: number;
+  /** Percentual de seções preenchidas (0–100). */
+  completude: number;
+  extraindo: boolean;
+  falha_extracao: boolean;
+}
+
+export interface ColunaKanban {
+  etapa: EtapaKanban;
+  total: number;
+  cards: CardLead[];
+}
+
+export interface RespostaKanban {
+  colunas: ColunaKanban[];
+  visiveis: number;
+  total: number;
+  /** Texto do banner de escopo, já ajustado ao papel pela API. */
+  aviso: string;
+}
+
+export interface FiltrosKanban {
+  analista_id: number | null;
+  negocio_id: number | null;
+  so_bloqueantes: boolean;
+}

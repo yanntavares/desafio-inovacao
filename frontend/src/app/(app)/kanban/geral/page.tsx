@@ -1,5 +1,7 @@
-import { EmConstrucao } from "@/components/layout/EmConstrucao";
+import { QuadroKanban } from "@/components/kanban/QuadroKanban";
 
 export default function KanbanGeralPage() {
-  return <EmConstrucao titulo="Kanban geral" subtitulo="Todos os leads, organizados pelas etapas do funil." tela="04" />;
+  return (
+    <QuadroKanban titulo="Kanban geral" subtitulo="Visão de gerência: todos os leads, organizados pelas etapas do funil." />
+  );
 }

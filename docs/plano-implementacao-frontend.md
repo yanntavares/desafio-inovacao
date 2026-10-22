@@ -18,7 +18,7 @@ A tabela abaixo conecta diretamente os protótipos visuais aos seus respectivos 
 | `02-login 1.jpg` | `/login` | Todos | Login padrão por e-mail/senha, link de recuperação de senha (desabilitado para MVP) e painel **Modo demonstração** com atalhos de perfil. | `POST /auth/login`  `POST /auth/renovar` | 
 | `03-interface-diretoria 1.jpg` | `/diretoria` | Diretoria (`DR`) | Header de filtros globais, 4 cards de métricas do funil, gráfico "Funil por etapa", gerenciamento de usuários e matriz visual de permissões com aviso de trava. | `GET /painel`  `GET /admin/usuarios`  `POST /admin/usuarios`  `GET /auditoria` | 
 | `04-kanban-geral 1.jpg` | `/kanban/geral` | Gerente (`RL`) | Banner de escopo ("Você vê todos os leads"), filtros por analista e negócio, 6 colunas do funil e cards com percentual de completude e badge de pendências. | `GET /kanban` | 
-| `04b-kanban-visao-analista 1.png` | `/kanban/meus-leads` | Analista (`MC`) | Banner de restrição ("Você vê apenas os seus leads"), botão em destaque **+ Cadastrar reunião** e cards restritos à carteira do analista. | `GET /kanban?meus_leads=true` | 
+| `04b-kanban-visao-analista 1.png` | `/kanban/meus-leads` | Analista (`MC`) | Banner de restrição ("Você vê apenas os seus leads"), botão em destaque **+ Cadastrar reunião** e cards restritos à carteira do analista. | `GET /kanban` (a API restringe pelo papel) | 
 | `05-cadastro-de-reuniao 1.jpg` | `/reunioes/cadastrar` | Analista / Gerente | Toggle "Lead existente / Novo lead", form de metadados e participantes, área de upload/texto (limite de 15k palavras), sidebar de resumo e checklist de obrigatórios (7/7). | `GET /reunioes/opcoes`  `POST /reunioes/pre-visualizar`  `POST /reunioes` | 
 | `06-pagina-individual-do-lead 1.jpg` | `/jornadas/{id}` | Todos (Ações por papel) | Stepper de 7 estados da jornada, abas de navegação, visão geral com chips de natureza/origem, histórico de documentação, widget de Handoff com Gate G3 e auditoria. | `GET /jornadas/{id}`  `GET /jornadas/{id}/documentos`  `GET /jornadas/{id}/pacote`  `POST /jornadas/{id}/aceitar-pacote`  `POST /jornadas/{id}/devolver-pacote` | 
 
@@ -129,6 +129,17 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * **Checklist 7/7** derivado do estado (transcrição só conta com pré-visualização válida). "Cadastrar e processar" fica desabilitado com o motivo escrito abaixo; o envio vai em multipart para `POST /reunioes` e redireciona para `/jornadas/{id}`.
 * **Componentes novos:** `formulario/CampoSelecao`, `formulario/GrupoAlternancia`, `reuniao/UploadTranscricao`, `reuniao/CheckListObrigatorios`, `reuniao/CampoParticipantes`, `reuniao/PainelLateralReuniao`; `CampoTexto` ganhou o tom `sobreBranco`. Formulário com `useState`, sem nova dependência.
 
+### Já existe — Kanban adaptável por perfil (`04` e `04b`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Rotas:** `/kanban/geral` (gerente, técnico, Diretoria) e `/kanban/meus-leads` (analista) usam o mesmo `kanban/QuadroKanban`, que adapta a visão pelo papel da sessão. Quem restringe a carteira é a API (`_consulta_visivel`); o front só ajusta os filtros.
+* **Dados:** `GET /kanban` com `analista_id`, `negocio_id` e `so_bloqueantes` (`apiKanban.listar`); o banner de escopo usa o `aviso` devolvido pela API ("Você vê todos os leads (22)…" / "…(5 de 22)…"). Filtro de negócios vem de `GET /reunioes/opcoes`; o de analistas, de `GET /usuarios/opcoes` filtrado para `comercial`. Trocar filtro refaz a consulta e descarta respostas antigas.
+* **Visão do analista:** no lugar do filtro de analistas aparece "Meus leads" travado (com o motivo no `title`) e o botão **+ Cadastrar reunião**. Gerente/Diretoria: "Todos os analistas" + lista.
+* **Colunas e cards:** as 6 etapas vêm da API ("Concluída" fica no histórico); coluna vazia mostra "Nenhum lead". Card com cliente, negócio, iniciais e primeiro nome do analista, nº de reuniões, chip lima "N bloq." (e borda lima), chips "Extraindo…" / "Falha na extração" e barra de completude (azul até a validação, verde depois). Clicar abre `/jornadas/{id}`. Em telas menores que `xl` o quadro rola na horizontal dentro do shell.
+* **Componentes novos:** `kanban/QuadroKanban`, `kanban/ColunaKanban`, `kanban/CardLead`, `kanban/FiltrosKanban`; tipos `CardLead`, `ColunaKanban`, `RespostaKanban`, `FiltrosKanban`, `EtapaKanban` em `lib/tipos.ts`.
+* *Decisão:* cores pelos tokens do `@theme` (tirados das telas), não por hex novos.
+
 ### Riscos e pendências
 
 * Token em `localStorage` fica exposto a XSS. Foi aceito para o MVP; a alternativa seria cookie httpOnly via proxy do Next.
@@ -137,6 +148,8 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * O perfil técnico não tem tela própria; usa o kanban geral em leitura.
 * Cadastro de reunião: falta conferir no navegador contra a API (upload multipart, CORS com `Authorization`) e a fidelidade visual da tela 05. A pré-visualização envia o arquivo inteiro a cada troca; aceitável no limite de 15 mil palavras.
 * O botão "Cancelar" descarta o formulário sem confirmação.
+* Kanban: a busca do header ("Buscar lead, negócio…" das telas 04/04b) ainda não existe; a API já aceita `q` em `GET /kanban` e há `GET /busca`. Sem atualização automática: um card em "Extraindo…" só muda ao recarregar ou trocar filtro.
+* Kanban: o filtro de negócios lista só leads não concluídos (`/reunioes/opcoes`), o que basta porque o quadro não mostra concluídos.
 
 ## 4. Regras Visuais e Trava de Invariantes
 

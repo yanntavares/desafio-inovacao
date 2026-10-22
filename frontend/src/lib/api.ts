@@ -1,11 +1,13 @@
 import type {
   CadastroEntrada,
+  FiltrosKanban,
   LoginEntrada,
   OpcoesReuniao,
   Papel,
   PerfilDemo,
   PreVisualizacao,
   ReuniaoCadastrada,
+  RespostaKanban,
   RespostaSessao,
   Usuario,
   UsuarioOpcao,
@@ -91,4 +93,16 @@ export const apiReunioes = {
     requisitar<PreVisualizacao>("/reunioes/pre-visualizar", { metodo: "POST", corpo: transcricao, token }),
   cadastrar: (token: string, dados: FormData) =>
     requisitar<ReuniaoCadastrada>("/reunioes", { metodo: "POST", corpo: dados, token }),
+};
+
+export const apiKanban = {
+  /** A API já restringe o analista aos próprios leads, com ou sem filtro. */
+  listar: (token: string, { analista_id, negocio_id, so_bloqueantes }: FiltrosKanban) => {
+    const params = new URLSearchParams();
+    if (analista_id) params.set("analista_id", String(analista_id));
+    if (negocio_id) params.set("negocio_id", String(negocio_id));
+    if (so_bloqueantes) params.set("so_bloqueantes", "true");
+    const consulta = params.toString();
+    return requisitar<RespostaKanban>(`/kanban${consulta ? `?${consulta}` : ""}`, { token });
+  },
 };
