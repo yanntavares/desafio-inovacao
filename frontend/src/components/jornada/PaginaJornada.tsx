@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AlertaErro } from "@/components/formulario/AlertaErro";
-import { apiJornadas, ErroApi } from "@/lib/api";
+import { apiJornadas } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { formatarData } from "@/lib/formato";
 import type {
@@ -12,10 +12,12 @@ import type {
   ReuniaoResumo,
   VisaoGeral,
 } from "@/lib/tipos";
+import { useLeitura } from "@/lib/useLeitura";
 import { HeaderJornada } from "./HeaderJornada";
 import { LinhaTempoJornada, ListaReunioes } from "./LinhaTempoJornada";
 import { type DecisaoG3, ModalDecisaoGateG3 } from "./ModalDecisaoGateG3";
 import { PainelHandoffGate } from "./PainelHandoffGate";
+import { PainelProximoPasso } from "./PainelProximoPasso";
 import { TabelaRequisitosG3 } from "./TabelaRequisitosG3";
 
 interface Dados {
@@ -115,8 +117,6 @@ function HistoricoDocumentos({ historico, estado }: { historico: HistoricoDocume
 export function PaginaJornada({ id }: { id: number }) {
   const { sessao } = useAuth();
   const token = sessao!.token;
-  const [dados, setDados] = useState<Dados | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
   const [aba, setAba] = useState<Aba>("Visão geral");
   const [decisao, setDecisao] = useState<DecisaoG3 | null>(null);
 
@@ -131,29 +131,11 @@ export function PaginaJornada({ id }: { id: number }) {
     return { jornada, visao, auditoria, reunioes, documentos };
   }, [token, id]);
 
-  const recarregar = useCallback(() => {
-    carregar()
-      .then((d) => {
-        setDados(d);
-        setErro(null);
-      })
-      .catch((e: unknown) =>
-        setErro(e instanceof ErroApi ? e.message : "Não foi possível carregar o lead. Recarregue a página."),
-      );
-  }, [carregar]);
-
-  useEffect(() => {
-    let ativo = true;
-    carregar()
-      .then((d) => ativo && setDados(d))
-      .catch(
-        (e: unknown) =>
-          ativo && setErro(e instanceof ErroApi ? e.message : "Não foi possível carregar o lead. Recarregue a página."),
-      );
-    return () => {
-      ativo = false;
-    };
-  }, [carregar]);
+  // 5 s enquanto a IA extrai (o worker muda o estado sozinho), 30 s no resto.
+  const { dados, erro, recarregar } = useLeitura<Dados>(`lead:${token}:${id}`, carregar, {
+    intervaloMs: (d) =>
+      d && ["TRANSCRICAO_RECEBIDA", "EXTRAINDO"].includes(d.jornada.estado) ? 5_000 : 30_000,
+  });
 
   if (!dados) {
     return erro ? (
@@ -218,6 +200,7 @@ export function PaginaJornada({ id }: { id: number }) {
         </div>
 
         <aside className="flex flex-col gap-6">
+          <PainelProximoPasso jornada={jornada} aoAgir={recarregar} />
           <PainelHandoffGate jornada={jornada} aoDecidir={setDecisao} aoEnviar={recarregar} />
           <Cartao titulo="Linha do tempo">
             <LinhaTempoJornada registros={auditoria} limite={5} />

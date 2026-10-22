@@ -131,6 +131,9 @@ export const apiJornadas = {
   documentos: (token: string, id: number) =>
     requisitar<HistoricoDocumentacao>(`/jornadas/${id}/documentos`, { token }),
   evidencia: (token: string, itemId: number) => requisitar<Evidencia>(`/itens/${itemId}/evidencia`, { token }),
+  /** A extração falhou: reenfileira sem perder a transcrição nem duplicar itens. */
+  tentarExtracaoDeNovo: (token: string, id: number) =>
+    requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/extracao/tentar-novamente`, { metodo: "POST", token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */

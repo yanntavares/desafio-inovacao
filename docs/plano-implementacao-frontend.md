@@ -21,13 +21,15 @@ Branch `feature/frontend-conciliado`, a partir desta (`feature/frontend-telas`).
 
 - **Histórico** (`/historico`, `components/historico/TabelaHistorico.tsx`): lista de leads concluídos a partir de `GET /kanban?concluidas=true`, com filtro por analista (gerente/técnico), estado vazio e atualização a cada 60 s. Testado no navegador: a gerente designada e o analista dono veem o lead concluído; outro analista vê o estado vazio (isolamento da carteira); "Abrir lead" leva à página do lead. Para ver a tela com dados, o lead "Padaria Trigal" foi concluído pela API (pauta de kickoff gerada e aprovada pela gerente); o seed não tem lead concluído e o reseed desfaz isso.
 
+- **Próximo passo + "Tentar de novo"** (`components/jornada/PainelProximoPasso.tsx`, na coluna lateral da página do lead): em `TRANSCRICAO_RECEBIDA`/`EXTRAINDO` mostra "Extraindo a ficha" (a página pode ser fechada); em `FALHA_EXTRACAO` mostra "A extração falhou · Sua transcrição está preservada" e o botão "Tentar de novo" (`POST /jornadas/{id}/extracao/tentar-novamente`) para o analista dono e o gerente; a API confere o resto. A página do lead passou a usar `lib/useLeitura.ts`: atualiza a cada 5 s durante a extração e a cada 30 s no resto, só com a aba visível. Este painel é o ponto de encaixe das próximas ações (G2, G4). Testado no navegador: lead em falha → botão → "Extraindo a ficha" → o painel some sozinho quando o worker termina, sem recarregar. Em `FALHA_EXTRACAO` sem reunião a API quebra (`reunioes[-1]`), mas esse estado não ocorre no fluxo normal.
+
 **Correção (22/10):** a página do lead **não** foi portada da outra branch e isso foi um erro de avaliação. A outra tem o que esta não tem: ação "Tentar de novo" na falha de extração, "Aprovar validação" (G2) e atualização automática enquanto a extração roda. Aqui o card do kanban manda "abrir o lead e tentar de novo", mas a página não tem o botão (beco sem saída).
 
 **Lacunas contra `docs/requisitos-enxutos.docx` e `docs/user-stories.docx`** (o back tem o endpoint em todos os casos; falta a tela):
 
 | Prioridade | Lacuna | Histórias / capacidades | Endpoint pronto |
 | --- | --- | --- | --- |
-| 1 | "Tentar de novo" na falha de extração e polling da página do lead durante a extração | C4, C5 | `POST /jornadas/{id}/extracao/tentar-novamente` |
+| 1 | ~~"Tentar de novo" na falha de extração e polling da página do lead durante a extração~~ **feito** (ver abaixo) | C4, C5 | `POST /jornadas/{id}/extracao/tentar-novamente` |
 | 1 | Revisão G2: itens ao lado da evidência; confirmar, editar, rejeitar, adicionar; seletor de natureza | C6, C7, C8 (cap. 5) | `GET/POST /jornadas/{id}/itens`, `PATCH /itens/{id}` |
 | 1 | Pendências: Informar / Esclarecido / Aceitar com risco + justificativa; lista com link no bloqueio do G2 | C9 (cap. 4) | `GET /jornadas/{id}/pendencias`, `POST /pendencias/{id}/resolver` |
 | 1 | Botão "Aprovar validação" (G2) com o motivo escrito | C10 | `POST /jornadas/{id}/validar` |
