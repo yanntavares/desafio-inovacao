@@ -103,6 +103,27 @@ src/
 
 
 
+## 3.1 Estado da implementação
+
+### Já existe — Autenticação e Shell Base (`01` e `02`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas pré-renderizadas como estáticas). **Não testado no navegador nem contra a API rodando**; não há testes automatizados de front.
+
+* **Sessão:** `lib/auth/AuthContext.tsx` guarda `{token, usuario, demo}` no `localStorage` (`ponte.sessao`) via `useSyncExternalStore` (sincroniza abas), renova o token por `POST /auth/renovar` a cada 30 min e encerra a sessão em caso de 401. `lib/auth/guardas.ts`: `useRedirecionarSeLogado` (telas públicas) e `useExigirSessao` (grupo `(app)`), que manda para o login quem não tem sessão e para a rota inicial do papel quem abre uma rota de outro papel. É só conveniência: quem barra é a API.
+* **Cliente HTTP:** `lib/api.ts` (`requisitar` + `apiAuth`) lê `NEXT_PUBLIC_API_URL`, envia o Bearer e transforma `{detail, codigo}` em `ErroApi` com a mensagem do back. `NEXT_PUBLIC_EMAIL_DOMINIO` (padrão `seedabit.org.br`) só orienta o formulário.
+* **`/cadastro`:** validação nativa espelhando `usuarios.cadastrar_conta` (nome, domínio do e-mail, senha com 10+ caracteres, letras e números, confirmação, LGPD). O erro da API aparece em alerta. A conta entra como analista e é redirecionada.
+* **`/login`:** e-mail e senha; "Esqueci a senha" desabilitado com o motivo no `title`. **Modo demonstração** carregado de `GET /auth/demo`; a seção some quando a API responde 404 (`DEMO_MODE` desligado). *Decisão:* clicar no perfil **seleciona e preenche** o e-mail (a senha fica desabilitada) e o botão "Entrar como …" confirma via `POST /auth/demo`. Digitar outro e-mail desfaz a seleção.
+* **Shell `(app)`:** `SidebarNav` com menu por papel (`lib/rotas.ts`, espelhando as telas 03/04/04b), `SwitchModoDemo` no rodapé (troca o papel na hora só em sessão de demonstração; fora dela mostra o perfil fixo), `HeaderBreadcrumb` e botão Sair. Rota inicial: analista → `/kanban/meus-leads`, gerente e técnico → `/kanban/geral`, Diretoria → `/diretoria`.
+* **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/reunioes/cadastrar`, `/historico`.
+* **Identidade:** tokens de cor no `@theme` de `globals.css` (marinho, lima, azul), Inter via `next/font`, borda recortada por `clip-path` com semente fixa (`components/marca/recorte.ts`) e ícones em SVG inline (`components/icones.tsx`), sem novas dependências.
+
+### Riscos e pendências
+
+* Token em `localStorage` fica exposto a XSS. Foi aceito para o MVP; a alternativa seria cookie httpOnly via proxy do Next.
+* `CORS_ORIGENS` do back precisa incluir a origem do front (padrão `http://localhost:3000`).
+* Falta conferir a fidelidade visual das telas 01 e 02 no navegador e o fluxo ponta a ponta com o seed (`python -m app.seed`).
+* O perfil técnico não tem tela própria; usa o kanban geral em leitura.
+
 ## 4. Regras Visuais e Trava de Invariantes
 
 1. **Restrição de Ação da Diretoria:** A interface da Diretoria deve apresentar o alerta visual fixo: *"Perfil Diretoria não aprova nada por outra pessoa"*, desabilitando botões de aprovação de gates.
