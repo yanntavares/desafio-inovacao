@@ -19,7 +19,7 @@ Tudo abaixo roda e tem teste em SQLite (23 testes, `make test`). Nada foi execut
 | Kanban por perfil, detalhe do lead, funil, auditoria | `services/jornadas.py`, `services/painel.py` | Feito |
 | Pacote de handoff (16 seções, hash, versões, aceite, devolução) | `services/pacote.py` | Feito |
 | Documentos versionados, conferência de números, G4, conclusão | `services/documentos.py` | Feito com o mock |
-| Seed de demonstração (9 leads em todas as etapas) | `seed/__init__.py` | Feito |
+| Seed de demonstração (10 leads em todas as etapas, inclusive um concluído; 6 contas, com usuário técnico) | `seed/__init__.py` | Feito; `GET /auth/demo` lista os 4 perfis (analista, gerente, técnico, Diretoria) |
 
 ## 2. O que falta, em ordem
 
@@ -63,6 +63,10 @@ Feito em 21/10: `GET /reunioes/opcoes`, `POST /reunioes/pre-visualizar`, `GET /p
 Também feito: resumo gerencial gerado pelo gerente designado já em `HANDOFF_ENVIADO` (`POST /jornadas/{id}/documentos` com `tipo=resumo_gerencial`; vem em `GET /jornadas/{id}` como `resumo_gerencial`; o seed gera um para cada lead a partir de "Handoff enviado") e `GET /auditoria?desde=&ate=`. Reenviar convite ficou fora do MVP (sem e-mail, a Diretoria avisa por fora).
 
 Decidido: o gerente também cadastra reunião (escolhe o analista responsável). A Diretoria não.
+
+### Seed ajustado para o front (22/10)
+
+Usuário técnico (`paulo.nunes`, somente leitura) e lead concluído (Ateliê Vento Sul: Marina + Rafael, com pauta aprovada) para o Histórico e o perfil técnico terem dados; o técnico entra em `GET /auth/demo`. Testes novos em `tests/api/test_telas.py` (carteira do histórico, técnico só lê com 403 em validar/concluir/gerar documento/cadastrar reunião). Suíte rodada no container: 56 passed + 1 skipped no SQLite, 57 passed no PostgreSQL (`handoff_teste`). `make test` não roda aqui (sem `uv`): pytest e httpx foram instalados em `/tmp/dev` do container da API e a suíte roda com `PYTHONPATH=/tmp/dev python -m pytest`.
 
 ### Fase 4 — Segurança e operação
 

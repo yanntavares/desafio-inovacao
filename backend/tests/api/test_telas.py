@@ -101,3 +101,33 @@ def test_auditoria_por_periodo(client, entrar):
     assert client.get("/auditoria", params={"desde": hoje.isoformat(), "ate": hoje.isoformat()}, headers=h).json()
     r = client.get("/auditoria", params={"desde": amanha, "ate": hoje.isoformat()}, headers=h)
     assert r.status_code == 422 and "inicial" in r.json()["detail"]
+
+
+def _historico(client, headers):
+    corpo = client.get("/kanban", params={"concluidas": "true"}, headers=headers).json()
+    return [c for coluna in corpo["colunas"] for c in coluna["cards"]]
+
+
+def test_historico_do_seed_respeita_a_carteira(client, entrar):
+    # o seed traz um lead concluído (Ateliê Vento Sul: Marina + Rafael) para o Histórico nascer com dados
+    assert [c["cliente"] for c in _historico(client, entrar("marina.costa"))] == ["Ateliê Vento Sul"]
+    assert [c["cliente"] for c in _historico(client, entrar("rafael.lima"))] == ["Ateliê Vento Sul"]
+    assert _historico(client, entrar("lucas.prado")) == []  # lead de outro analista
+    # concluído sai do quadro normal
+    quadro = client.get("/kanban", headers=entrar("rafael.lima")).json()
+    assert "Concluída" not in [c["etapa"] for c in quadro["colunas"]]
+
+
+def test_tecnico_do_seed_so_le(client, entrar):
+    tecnico = entrar("paulo.nunes")
+    perfis = {p["papel"]: p for p in client.get("/auth/demo").json()}
+    assert perfis["tecnico"]["email"] == "paulo.nunes@seedabit.org.br"
+    cards = _historico(client, tecnico)
+    assert [c["cliente"] for c in cards] == ["Ateliê Vento Sul"]  # vê todos, inclusive o histórico
+    lead = cards[0]["id"]
+    assert client.get(f"/jornadas/{lead}", headers=tecnico).status_code == 200
+    assert client.post(f"/jornadas/{lead}/validar", headers=tecnico).status_code == 403
+    assert client.post(f"/jornadas/{lead}/concluir", headers=tecnico).status_code == 403
+    assert client.post(f"/jornadas/{lead}/documentos", headers=tecnico,
+                       json={"tipo": "briefing_projeto"}).status_code == 403
+    assert client.post("/reunioes/pre-visualizar", headers=tecnico, data={"texto": "Ana: oi"}).status_code == 403

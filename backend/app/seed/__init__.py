@@ -57,6 +57,7 @@ USUARIOS = [
     ("Lucas Prado", "lucas.prado", Papel.COMERCIAL),
     ("Rafael Lima", "rafael.lima", Papel.GERENTE),
     ("Camila Reis", "camila.reis", Papel.GERENTE),
+    ("Paulo Nunes", "paulo.nunes", Papel.TECNICO),
     ("Diretoria", "diretoria", Papel.ADMIN),
 ]
 
@@ -71,6 +72,7 @@ LEADS = [
     ("Clínica Vitalis", "Sistema de agendamento", "marina.costa", "rafael.lima", E.HANDOFF_ENVIADO),
     ("Rede Folha", "Loja virtual", "lucas.prado", "camila.reis", E.ACEITO),
     ("Padaria Trigal", "Pedidos online", "lucas.prado", "camila.reis", E.BRIEFING_APROVADO),
+    ("Ateliê Vento Sul", "Catálogo de produtos", "marina.costa", "rafael.lima", E.CONCLUIDA),
 ]
 
 
@@ -138,6 +140,11 @@ def _criar_lead(db: Session, u: dict[str, Usuario], cliente, negocio, analista_k
         return
     doc = documentos.gerar(db, j, gerente, TipoDocumento.BRIEFING_PROJETO)
     documentos.aprovar(db, doc, gerente)
+    if alvo == E.BRIEFING_APROVADO:
+        return
+    pauta = documentos.gerar(db, j, gerente, TipoDocumento.PAUTA_KICKOFF)
+    documentos.aprovar(db, pauta, gerente)
+    documentos.concluir(db, j, gerente)
 
 
 def recarregar(db: Session) -> None:
