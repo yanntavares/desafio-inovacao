@@ -191,11 +191,6 @@ export function PainelHandoffGate({ jornada, aoDecidir, aoEnviar }: PainelHandof
           Versão v{pacote.versao} aceita por {jornada.gerente?.nome ?? "o gerente"} (G3).
         </p>
       )}
-      {jornada.estado === "EM_VALIDACAO" && usuario.papel === "comercial" && (
-        <p className="mt-5 text-sm text-cinza">
-          {jornada.gates.G2.motivo ?? "Ficha pronta: aprove a validação (G2) para gerar o pacote."}
-        </p>
-      )}
       {podeEnviar && <EnvioHandoff jornada={jornada} aoEnviar={aoEnviar} />}
     </section>
   );

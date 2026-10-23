@@ -303,3 +303,56 @@ export interface UsuarioPatch {
   papel?: Papel;
   ativo?: boolean;
 }
+
+// Revisão da ficha (G2): itens e pendências (backend/app/api/jornadas.py).
+
+export type StatusValidacao = "pendente" | "confirmado" | "editado" | "rejeitado";
+
+export interface ItemRevisao {
+  id: number;
+  categoria: string;
+  descricao: string;
+  natureza_proposta: NaturezaItem | null;
+  natureza_final: NaturezaItem | null;
+  origem: OrigemItem;
+  situacao: "informado" | "nao_informado";
+  status_validacao: StatusValidacao;
+  sem_evidencia: boolean;
+}
+
+/** `confirmar` e `editar` exigem a natureza escolhida por pessoa; a IA nunca decide. */
+export interface RevisaoItemEntrada {
+  acao: "confirmar" | "editar" | "rejeitar";
+  natureza_final?: NaturezaItem;
+  descricao?: string;
+}
+
+export type StatusPendencia = "aberta" | "resolvida" | "esclarecida" | "aceita_com_risco";
+
+export interface Pendencia {
+  id: number;
+  jornada_id: number;
+  /** Categoria do item que falta (ou rótulo livre, nas lacunas apontadas pela IA). */
+  campo: string;
+  descricao: string;
+  severidade: "bloqueante" | "atencao";
+  status: StatusPendencia;
+  justificativa: string | null;
+  origem_ia: boolean;
+  pergunta_sugerida: string | null;
+}
+
+export interface ResolucaoPendencia {
+  acao: "informar" | "esclarecido" | "aceitar_com_risco";
+  justificativa?: string;
+  descricao?: string;
+}
+
+/** Fila do gerente (`GET /handoffs`): leads com pacote designado a ele. */
+export interface HandoffRecebido {
+  jornada_id: number;
+  cliente: string;
+  titulo: string;
+  estado: EstadoJornada;
+  pacote: PacoteHandoff;
+}

@@ -8,7 +8,12 @@ import type {
   DetalheJornada,
   EstadoJornada,
   Evidencia,
+  HandoffRecebido,
   HistoricoDocumentacao,
+  ItemRevisao,
+  Pendencia,
+  ResolucaoPendencia,
+  RevisaoItemEntrada,
   PacoteHandoff,
   RegistroAuditoria,
   ReuniaoResumo,
@@ -118,6 +123,8 @@ export const apiKanban = {
     const consulta = params.toString();
     return requisitar<RespostaKanban>(`/kanban${consulta ? `?${consulta}` : ""}`, { token });
   },
+  /** Só a coluna "Concluída" (o histórico); a mesma restrição por papel vale aqui. */
+  concluidas: (token: string) => requisitar<RespostaKanban>("/kanban?concluidas=true", { token }),
 };
 
 export const apiJornadas = {
@@ -128,6 +135,17 @@ export const apiJornadas = {
   documentos: (token: string, id: number) =>
     requisitar<HistoricoDocumentacao>(`/jornadas/${id}/documentos`, { token }),
   evidencia: (token: string, itemId: number) => requisitar<Evidencia>(`/itens/${itemId}/evidencia`, { token }),
+  itens: (token: string, id: number) => requisitar<ItemRevisao[]>(`/jornadas/${id}/itens`, { token }),
+  revisarItem: (token: string, itemId: number, dados: RevisaoItemEntrada) =>
+    requisitar<ItemRevisao>(`/itens/${itemId}`, { metodo: "PATCH", corpo: dados, token }),
+  pendencias: (token: string, id: number) => requisitar<Pendencia[]>(`/jornadas/${id}/pendencias`, { token }),
+  resolverPendencia: (token: string, pendenciaId: number, dados: ResolucaoPendencia) =>
+    requisitar<Pendencia>(`/pendencias/${pendenciaId}/resolver`, { metodo: "POST", corpo: dados, token }),
+  /** G2: só o analista responsável, sem pendência bloqueante aberta. */
+  validar: (token: string, id: number) =>
+    requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/validar`, { metodo: "POST", token }),
+  /** Exige o papel de gerente (403 para os demais). */
+  handoffsRecebidos: (token: string) => requisitar<HandoffRecebido[]>("/handoffs", { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */

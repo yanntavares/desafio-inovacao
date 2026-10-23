@@ -21,6 +21,8 @@ A tabela abaixo conecta diretamente os protótipos visuais aos seus respectivos 
 | `04b-kanban-visao-analista 1.png` | `/kanban/meus-leads` | Analista (`MC`) | Banner de restrição ("Você vê apenas os seus leads"), botão em destaque **+ Cadastrar reunião** e cards restritos à carteira do analista. | `GET /kanban` (a API restringe pelo papel) | 
 | `05-cadastro-de-reuniao 1.jpg` | `/reunioes/cadastrar` | Analista / Gerente | Toggle "Lead existente / Novo lead", form de metadados e participantes, área de upload/texto (limite de 15k palavras), sidebar de resumo e checklist de obrigatórios (7/7). | `GET /reunioes/opcoes`  `POST /reunioes/pre-visualizar`  `POST /reunioes` | 
 | `06-pagina-individual-do-lead 1.jpg` | `/jornadas/{id}` | Todos (Ações por papel) | Stepper de 7 estados da jornada, abas de navegação, visão geral com chips de natureza/origem, histórico de documentação, widget de Handoff com Gate G3 e auditoria. | `GET /jornadas/{id}`  `GET /jornadas/{id}/visao-geral`  `GET /jornadas/{id}/documentos`  `GET /jornadas/{id}/auditoria`  `GET /jornadas/{id}/reunioes`  `GET /itens/{id}/evidencia`  `POST /jornadas/{id}/handoff`  `POST /jornadas/{id}/handoff/aceitar`  `POST /jornadas/{id}/handoff/devolver` | 
+| `07b-historico-docs-enviadas 1.png` | `/historico/enviadas` | Analista | Filtros de período, lead ("Visão Geral") e gerente; 4 cartões de métricas; lista de documentos com versão e selo. | `GET /kanban`  `GET /kanban?concluidas=true`  `GET /jornadas/{id}/documentos`  `GET /usuarios/opcoes` |
+| `07-historico-docs-recebidas 1.png` | `/historico/recebidas` | Gerente (e técnico) | Mesmo layout, filtro por analista; o gerente vê só os leads que recebeu. | `GET /handoffs`  `GET /kanban`  `GET /jornadas/{id}/documentos` |
 
 
 
@@ -114,7 +116,7 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas 
 * **`/cadastro`:** validação nativa espelhando `usuarios.cadastrar_conta` (nome, domínio do e-mail, senha com 10+ caracteres, letras e números, confirmação, LGPD). O erro da API aparece em alerta. A conta entra como analista e é redirecionada.
 * **`/login`:** e-mail e senha; "Esqueci a senha" desabilitado com o motivo no `title`. **Modo demonstração** carregado de `GET /auth/demo`; a seção some quando a API responde 404 (`DEMO_MODE` desligado). *Decisão:* clicar no perfil **seleciona e preenche** o e-mail (a senha fica desabilitada) e o botão "Entrar como …" confirma via `POST /auth/demo`. Digitar outro e-mail desfaz a seleção.
 * **Shell `(app)`:** `SidebarNav` com menu por papel (`lib/rotas.ts`, espelhando as telas 03/04/04b), `SwitchModoDemo` no rodapé (troca o papel na hora só em sessão de demonstração; fora dela mostra o perfil fixo), `HeaderBreadcrumb` e botão Sair. Rota inicial: analista → `/kanban/meus-leads`, gerente e técnico → `/kanban/geral`, Diretoria → `/diretoria`.
-* **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/historico` e `/jornadas/[id]` (destino após cadastrar reunião; `export const instant = false` porque o layout `(app)` lê `usePathname` fora de `<Suspense>`).
+* **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/historico` (hoje `/historico/enviadas` e `/recebidas`) e `/jornadas/[id]` (destino após cadastrar reunião; `export const instant = false` porque o layout `(app)` lê `usePathname` fora de `<Suspense>`).
 * **Identidade:** tokens de cor no `@theme` de `globals.css` (marinho, lima, azul), Inter via `next/font`, borda recortada por `clip-path` com semente fixa (`components/marca/recorte.ts`) e ícones em SVG inline (`components/icones.tsx`), sem novas dependências.
 
 ### Já existe — Cadastro e pré-visualização de reunião (`05`)
@@ -166,6 +168,26 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * `Selecao` do kanban virou `formulario/SelecaoFiltro` (reusada nos filtros da Diretoria).
 * *Decisões:* o plano citava `GET /painel`, `GET|POST /admin/usuarios` e `GET /auditoria`; seguimos o contrato real da API. A auditoria global (`GET /auditoria`) não aparece na tela 03 e ficou de fora. Status `convidado` aparece como "Convite pendente" (a tela diz "Convidada", que não serve para todos). Busca e sino de notificações do header não foram feitos (header compartilhado; mesma pendência do kanban). Uso de IA (`ia` no painel) é devolvido pela API mas não está na tela.
 
+### Já existe — Revisão da ficha e Gate G2 (dentro de `06`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Onde:** com a jornada em `EM_VALIDACAO`, a aba "Visão geral" do lead troca a tabela de leitura por `jornada/RevisaoG2` e o painel lateral de handoff por `jornada/PainelValidacaoG2`. Fora desse estado tudo volta a ser leitura.
+* **`RevisaoG2`:** itens por seção (`GET /jornadas/{id}/itens`), cada um com origem, "IA propõe: …" enquanto não houver decisão, situação (A revisar/Confirmado/Editado/Rejeitado) e evidência a um clique. O analista responsável escolhe a natureza (pré-selecionada com a proposta da IA, mas só vale ao confirmar) e confirma, edita o texto ou rejeita (`PATCH /itens/{id}`). Pendências (`GET /jornadas/{id}/pendencias`) com severidade, "origem: IA", pergunta sugerida e as três ações de `POST /pendencias/{id}/resolver`: informar dado (só quando o campo é uma das 16 seções), esclarecido (justificativa opcional) e aceitar com risco (justificativa obrigatória). Quem não é o responsável vê tudo em leitura.
+* **`PainelValidacaoG2`:** itens a revisar, bloqueantes e seções N/16; botão **"Confirmar documentação (G2)"** desabilitado com o motivo de `gates.G2` (com orientação sobre as pendências). Confirmar pede uma segunda confirmação, avisa quantos itens não revisados irão ao pacote como "Sugestão da IA" e chama `POST /jornadas/{id}/validar`. Ao validar, a página recarrega e o `PainelHandoffGate` mostra o envio do handoff ao gerente.
+* **Refatoração:** `jornada/TrechoEvidencia` (evidência compartilhada pela leitura e pela revisão) e `jornada/HistoricoDocumentos` (`linhasDocumentos` + `ListaDocumentos`, usados no lead e no histórico). Linha do tempo ganhou os rótulos `pendencia_*`.
+* *Decisões (com o time):* revisão item a item + botão na própria página do lead, sem rota nova. O G2 **não** exige todos os itens revisados porque a API só bloqueia por pendência bloqueante; o aviso na confirmação deixa isso explícito.
+
+### Já existe — Histórico de documentação (`07` e `07b`)
+
+Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
+
+* **Rotas:** `/historico/enviadas` (analista; menu "Histórico") e `/historico/recebidas` (gerente e técnico). A antiga `/historico` saiu. A trilha mostra só "Histórico" (`semRaiz` em `lib/rotas.ts`), como nas telas.
+* **`historico/PainelHistorico`:** filtros Período (7/30/90 dias/todo), Lead ("Visão Geral" = todos) e "Todos os gerentes" (enviadas, pelo gerente de algum pacote do lead) ou "Todos os analistas" (recebidas). Quatro cartões (leads, em validação, handoffs aguardando aceite, pendências bloqueantes) calculados sobre os leads filtrados. Lista no padrão da tela: ícone, título, data · analista ou snapshot, versão e selo; cada linha abre o lead.
+* **Dados:** *decisão (com o time):* sem endpoint novo. O front junta `GET /kanban` + `GET /kanban?concluidas=true` e chama `GET /jornadas/{id}/documentos` por lead. O gerente vê só os leads de `GET /handoffs` (handoff enviado a ele); o técnico vê os leads visíveis a ele.
+* Com um lead escolhido a lista fica em ordem cronológica e inclui "Após o aceite" (briefing de projeto e pauta); na visão geral a ordem é do mais recente e esses marcadores somem (seriam um por lead). O período não se aplica aos cartões.
+* *Divergência da tela:* o primeiro cartão do gerente diz "Leads recebidos" (a tela diz "Todos os leads"), porque ele vê só os leads que recebeu.
+
 ### Riscos e pendências
 
 * Token em `localStorage` fica exposto a XSS. Foi aceito para o MVP; a alternativa seria cookie httpOnly via proxy do Next.
@@ -175,7 +197,9 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * Cadastro de reunião: falta conferir no navegador contra a API (upload multipart, CORS com `Authorization`) e a fidelidade visual da tela 05. A pré-visualização envia o arquivo inteiro a cada troca; aceitável no limite de 15 mil palavras.
 * O botão "Cancelar" descarta o formulário sem confirmação.
 * Kanban: a busca do header ("Buscar lead, negócio…" das telas 04/04b) ainda não existe; a API já aceita `q` em `GET /kanban` e há `GET /busca`. Sem atualização automática: um card em "Extraindo…" só muda ao recarregar ou trocar filtro.
-* Página do lead: o breadcrumb ainda mostra "Kanban de leads" sem o nome do cliente (o header não conhece a jornada). Não há tela de revisão G2 (itens ao lado da evidência, pendências) nem de briefing/pauta (G4); o analista em `EM_VALIDACAO` só vê o motivo do G2. Documentos do histórico ainda não abrem.
+* Página do lead: o breadcrumb ainda mostra "Kanban de leads" sem o nome do cliente (o header não conhece a jornada). Não há tela de briefing/pauta (G4) nem de geração/edição de resumo e briefing comercial. Documentos do histórico ainda não abrem (a linha leva ao lead).
+* Revisão G2: cada ação recarrega a página inteira (7 GETs); aceitável no volume do MVP. Não há inclusão manual de item (`POST /jornadas/{id}/itens`) na interface.
+* Histórico: N+2 requisições (uma por lead). Com 22 leads é aceitável; acima disso vale o endpoint agregado no back. Sem paginação.
 * Diretoria: trocar o próprio perfil é aceito pela API (só barra a última conta da Diretoria); a sessão passa a receber 403 nas telas da Diretoria até sair e entrar de novo. Convite não envia e-mail (o back só cria a conta pendente).
 * Kanban: o filtro de negócios lista só leads não concluídos (`/reunioes/opcoes`), o que basta porque o quadro não mostra concluídos.
 

@@ -14,7 +14,8 @@ export function HeaderBreadcrumb() {
   const menu = MENU_POR_PAPEL[usuario.papel];
   const atual = menu.find((i) => caminho === i.href || caminho.startsWith(`${i.href}/`));
   // Telas 05/06: as páginas internas partem do kanban ("Kanban de leads › Cadastrar reunião").
-  const raiz = usuario.papel === "admin" ? ["Diretoria"] : atual && atual !== menu[0] ? [menu[0].rotulo] : [];
+  const raiz =
+    usuario.papel === "admin" ? ["Diretoria"] : atual && atual !== menu[0] && !atual.semRaiz ? [menu[0].rotulo] : [];
   const trilha = [...raiz, atual?.rotulo ?? "Ponte"];
 
   return (
