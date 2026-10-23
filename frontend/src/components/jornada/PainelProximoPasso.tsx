@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { apiJornadas, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { DetalheJornada } from "@/lib/tipos";
-import { AprovarValidacao } from "./AprovarValidacao";
 
 interface PainelProximoPassoProps {
   jornada: DetalheJornada;
@@ -70,27 +68,6 @@ export function PainelProximoPasso({ jornada, aoAgir }: PainelProximoPassoProps)
         </div>
       );
       break;
-    case "EM_VALIDACAO": {
-      const reviso = usuario.papel === "comercial" && usuario.id === jornada.analista.id;
-      titulo = "Validação da ficha (G2)";
-      corpo = (
-        <div className="flex flex-col gap-3">
-          <p className="text-[15px] text-cinza">
-            {reviso
-              ? "Confirme, edite ou rejeite cada item ao lado do trecho da transcrição. Só informação conferida avança."
-              : "O analista responsável está revisando os itens extraídos."}
-          </p>
-          <Link
-            href={`/jornadas/${jornada.id}/revisao`}
-            className="inline-flex h-14 items-center justify-center rounded-lg bg-azul text-lg font-bold text-white transition hover:bg-[#04549a] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/40"
-          >
-            {reviso ? "Revisar itens" : "Ver itens"}
-          </Link>
-          <AprovarValidacao jornada={jornada} />
-        </div>
-      );
-      break;
-    }
     default:
       return null;
   }

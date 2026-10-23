@@ -5,16 +5,16 @@ import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { apiJornadas, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { CategoriaItem, NaturezaItem } from "@/lib/tipos";
-import { NATUREZAS_DECIDIVEIS } from "./ItemRevisaoLinha";
+import { NATUREZAS_MANUAIS } from "./naturezas";
 
-interface NovoItemProps {
+interface NovoItemRevisaoProps {
   jornadaId: number;
   categorias: { valor: CategoriaItem; titulo: string }[];
   aoAdicionar: () => void;
 }
 
 /** "Adicionar item": o que a IA não captou. Entra como manual, já confirmado, com a natureza que a pessoa escolher. */
-export function NovoItem({ jornadaId, categorias, aoAdicionar }: NovoItemProps) {
+export function NovoItemRevisao({ jornadaId, categorias, aoAdicionar }: NovoItemRevisaoProps) {
   const { sessao } = useAuth();
   const token = sessao!.token;
   const [aberto, setAberto] = useState(false);
@@ -91,7 +91,7 @@ export function NovoItem({ jornadaId, categorias, aoAdicionar }: NovoItemProps) 
           className="mt-1.5 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[15px] font-normal outline-none focus:border-azul focus:ring-2 focus:ring-azul/30"
         >
           <option value="">Selecione…</option>
-          {NATUREZAS_DECIDIVEIS.map((n) => (
+          {NATUREZAS_MANUAIS.map((n) => (
             <option key={n.valor} value={n.valor}>
               {n.rotulo}
             </option>

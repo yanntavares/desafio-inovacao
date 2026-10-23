@@ -248,58 +248,10 @@ export type CategoriaItem =
   | "criterio_aceite"
   | "duvida";
 
-export type StatusValidacao = "pendente" | "confirmado" | "editado" | "rejeitado";
-
-/** Item da ficha como a revisão (G2) o vê: com status de validação, natureza proposta e final. */
-export interface ItemRevisao {
-  id: number;
-  categoria: CategoriaItem;
-  descricao: string;
-  natureza_proposta: NaturezaItem | null;
-  natureza_final: NaturezaItem | null;
-  origem: OrigemItem;
-  situacao: "informado" | "nao_informado";
-  status_validacao: StatusValidacao;
-  evidencias: { segmento_ordem: number; trecho?: string }[];
-  /** Sem trecho literal na transcrição: tratado como inferido. */
-  sem_evidencia: boolean;
-}
-
-export type AcaoItem = "confirmar" | "editar" | "rejeitar";
-
-export interface RevisaoItemEntrada {
-  acao: AcaoItem;
-  natureza_final?: NaturezaItem;
-  descricao?: string;
-  categoria?: CategoriaItem;
-}
-
 export interface NovoItemEntrada {
   categoria: CategoriaItem;
   descricao: string;
   natureza_final: NaturezaItem;
-}
-
-export type AcaoPendencia = "informar" | "esclarecido" | "aceitar_com_risco";
-
-export interface PendenciaItem {
-  id: number;
-  jornada_id: number;
-  /** Categoria (seção) a que a pendência se refere. */
-  campo: CategoriaItem;
-  descricao: string;
-  severidade: "bloqueante" | "atencao";
-  status: "aberta" | "resolvida" | "esclarecida" | "aceita_com_risco";
-  justificativa: string | null;
-  /** Lacuna apontada pela IA (rótulo "origem: IA"). */
-  origem_ia: boolean;
-  pergunta_sugerida: string | null;
-}
-
-export interface ResolucaoPendencia {
-  acao: AcaoPendencia;
-  justificativa?: string;
-  descricao?: string;
 }
 
 export interface SegmentoReuniao {
@@ -414,4 +366,57 @@ export interface Notificacao {
   texto: string;
   jornada_id: number | null;
   lida: boolean;
+}
+
+// Revisão da ficha (G2): itens e pendências (backend/app/api/jornadas.py).
+
+export type StatusValidacao = "pendente" | "confirmado" | "editado" | "rejeitado";
+
+export interface ItemRevisao {
+  id: number;
+  categoria: string;
+  descricao: string;
+  natureza_proposta: NaturezaItem | null;
+  natureza_final: NaturezaItem | null;
+  origem: OrigemItem;
+  situacao: "informado" | "nao_informado";
+  status_validacao: StatusValidacao;
+  sem_evidencia: boolean;
+}
+
+/** `confirmar` e `editar` exigem a natureza escolhida por pessoa; a IA nunca decide. */
+export interface RevisaoItemEntrada {
+  acao: "confirmar" | "editar" | "rejeitar";
+  natureza_final?: NaturezaItem;
+  descricao?: string;
+}
+
+export type StatusPendencia = "aberta" | "resolvida" | "esclarecida" | "aceita_com_risco";
+
+export interface Pendencia {
+  id: number;
+  jornada_id: number;
+  /** Categoria do item que falta (ou rótulo livre, nas lacunas apontadas pela IA). */
+  campo: string;
+  descricao: string;
+  severidade: "bloqueante" | "atencao";
+  status: StatusPendencia;
+  justificativa: string | null;
+  origem_ia: boolean;
+  pergunta_sugerida: string | null;
+}
+
+export interface ResolucaoPendencia {
+  acao: "informar" | "esclarecido" | "aceitar_com_risco";
+  justificativa?: string;
+  descricao?: string;
+}
+
+/** Fila do gerente (`GET /handoffs`): leads com pacote designado a ele. */
+export interface HandoffRecebido {
+  jornada_id: number;
+  cliente: string;
+  titulo: string;
+  estado: EstadoJornada;
+  pacote: PacoteHandoff;
 }

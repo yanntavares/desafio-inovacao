@@ -3,6 +3,8 @@ import type { Papel } from "./tipos";
 export interface ItemMenu {
   rotulo: string;
   href: string;
+  /** Telas 07/07b: a trilha mostra só o próprio rótulo, sem partir do kanban. */
+  semRaiz?: boolean;
 }
 
 // Espelha docs/telas: o menu muda por perfil; a API recusa o que o papel não pode.
@@ -10,16 +12,16 @@ export const MENU_POR_PAPEL: Record<Papel, ItemMenu[]> = {
   comercial: [
     { rotulo: "Kanban de leads", href: "/kanban/meus-leads" },
     { rotulo: "Cadastrar reunião", href: "/reunioes/cadastrar" },
-    { rotulo: "Histórico", href: "/historico" },
+    { rotulo: "Histórico", href: "/historico/enviadas", semRaiz: true },
   ],
   gerente: [
     { rotulo: "Kanban geral", href: "/kanban/geral" },
     { rotulo: "Cadastrar reunião", href: "/reunioes/cadastrar" },
-    { rotulo: "Histórico", href: "/historico" },
+    { rotulo: "Histórico", href: "/historico/recebidas", semRaiz: true },
   ],
   tecnico: [
     { rotulo: "Kanban geral", href: "/kanban/geral" },
-    { rotulo: "Histórico", href: "/historico" },
+    { rotulo: "Histórico", href: "/historico/recebidas", semRaiz: true },
   ],
   admin: [
     { rotulo: "Visão geral do funil", href: "/diretoria" },

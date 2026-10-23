@@ -1,31 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { apiJornadas, ErroApi } from "@/lib/api";
-import { useAuth } from "@/lib/auth/AuthContext";
-import type { Evidencia, ItemSecao, NaturezaItem, VisaoGeral } from "@/lib/tipos";
+import type { ItemSecao, NaturezaItem, VisaoGeral } from "@/lib/tipos";
 import { ChipNatureza, ChipOrigem } from "./ChipNatureza";
-
-type EstadoEvidencia = { carregando: true } | { carregando: false; dados?: Evidencia; erro?: string };
+import { TrechoEvidencia } from "./TrechoEvidencia";
 
 function LinhaItem({ item, natureza }: { item: ItemSecao; natureza: NaturezaItem }) {
-  const { sessao } = useAuth();
-  const [evidencia, setEvidencia] = useState<EstadoEvidencia | null>(null);
-  const aberta = evidencia !== null;
-
-  function alternar() {
-    if (aberta) return setEvidencia(null);
-    setEvidencia({ carregando: true });
-    apiJornadas
-      .evidencia(sessao!.token, item.id)
-      .then((dados) => setEvidencia({ carregando: false, dados }))
-      .catch((e: unknown) =>
-        setEvidencia({
-          carregando: false,
-          erro: e instanceof ErroApi ? e.message : "Não foi possível carregar a evidência. Tente de novo.",
-        }),
-      );
-  }
+  const [aberta, setAberta] = useState(false);
 
   return (
     <li className="py-2">
@@ -33,7 +14,7 @@ function LinhaItem({ item, natureza }: { item: ItemSecao; natureza: NaturezaItem
         <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
         <button
           type="button"
-          onClick={alternar}
+          onClick={() => setAberta((a) => !a)}
           aria-expanded={aberta}
           title="Ver o trecho da transcrição que sustenta este item"
           className="min-w-0 flex-1 text-left text-[16px] text-tinta underline-offset-4 hover:text-azul hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40"
@@ -43,26 +24,7 @@ function LinhaItem({ item, natureza }: { item: ItemSecao; natureza: NaturezaItem
         <ChipOrigem origem={item.origem} />
         <ChipNatureza natureza={natureza} />
       </div>
-      {evidencia && (
-        <div className="mt-2 ml-5 rounded-lg border-l-4 border-azul bg-azul-suave px-4 py-3 text-sm text-tinta">
-          {evidencia.carregando ? (
-            <p role="status" className="text-cinza">Carregando evidência…</p>
-          ) : evidencia.erro ? (
-            <p role="alert" className="text-perigo">{evidencia.erro}</p>
-          ) : evidencia.dados && evidencia.dados.evidencias.length > 0 ? (
-            evidencia.dados.evidencias.map((ev) => (
-              <blockquote key={ev.segmento_ordem} className="not-first:mt-2">
-                <span className="font-semibold">
-                  {ev.falante} · segmento {ev.segmento_ordem}:
-                </span>{" "}
-                “{ev.trecho ?? ev.texto}”
-              </blockquote>
-            ))
-          ) : (
-            <p className="text-cinza">Sem trecho na transcrição: item tratado como inferido.</p>
-          )}
-        </div>
-      )}
+      {aberta && <TrechoEvidencia itemId={item.id} />}
     </li>
   );
 }

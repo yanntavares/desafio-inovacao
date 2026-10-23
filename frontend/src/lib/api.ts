@@ -8,19 +8,20 @@ import type {
   DetalheJornada,
   EstadoJornada,
   Evidencia,
+  HandoffRecebido,
   HistoricoDocumentacao,
+  ItemRevisao,
+  Pendencia,
+  ResolucaoPendencia,
+  RevisaoItemEntrada,
   PacoteHandoff,
   RegistroAuditoria,
   ReuniaoResumo,
   VisaoGeral,
   FiltrosKanban,
-  ItemRevisao,
   LeadEncontrado,
   NovoItemEntrada,
-  PendenciaItem,
-  ResolucaoPendencia,
   ReuniaoCompleta,
-  RevisaoItemEntrada,
   LoginEntrada,
   Notificacao,
   OpcoesReuniao,
@@ -118,15 +119,16 @@ export const apiReunioes = {
 
 export const apiKanban = {
   /** A API já restringe o analista aos próprios leads, com ou sem filtro. */
-  listar: (token: string, { analista_id, negocio_id, so_bloqueantes }: FiltrosKanban, concluidas = false) => {
+  listar: (token: string, { analista_id, negocio_id, so_bloqueantes }: FiltrosKanban) => {
     const params = new URLSearchParams();
     if (analista_id) params.set("analista_id", String(analista_id));
     if (negocio_id) params.set("negocio_id", String(negocio_id));
     if (so_bloqueantes) params.set("so_bloqueantes", "true");
-    if (concluidas) params.set("concluidas", "true"); // histórico: só a coluna "Concluída"
     const consulta = params.toString();
     return requisitar<RespostaKanban>(`/kanban${consulta ? `?${consulta}` : ""}`, { token });
   },
+  /** Só a coluna "Concluída" (o histórico); a mesma restrição por papel vale aqui. */
+  concluidas: (token: string) => requisitar<RespostaKanban>("/kanban?concluidas=true", { token }),
 };
 
 export const apiJornadas = {
@@ -146,14 +148,16 @@ export const apiJornadas = {
     requisitar<ItemRevisao>(`/jornadas/${id}/itens`, { metodo: "POST", corpo: dados, token }),
   revisarItem: (token: string, itemId: number, dados: RevisaoItemEntrada) =>
     requisitar<ItemRevisao>(`/itens/${itemId}`, { metodo: "PATCH", corpo: dados, token }),
-  pendencias: (token: string, id: number) => requisitar<PendenciaItem[]>(`/jornadas/${id}/pendencias`, { token }),
+  pendencias: (token: string, id: number) => requisitar<Pendencia[]>(`/jornadas/${id}/pendencias`, { token }),
   resolverPendencia: (token: string, pendenciaId: number, dados: ResolucaoPendencia) =>
-    requisitar<PendenciaItem>(`/pendencias/${pendenciaId}/resolver`, { metodo: "POST", corpo: dados, token }),
-  /** G2: sem pendência bloqueante aberta (ou aceita com risco e justificativa); só o analista responsável. */
-  aprovarValidacao: (token: string, id: number) =>
+    requisitar<Pendencia>(`/pendencias/${pendenciaId}/resolver`, { metodo: "POST", corpo: dados, token }),
+  /** G2: só o analista responsável, sem pendência bloqueante aberta. */
+  validar: (token: string, id: number) =>
     requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/validar`, { metodo: "POST", token }),
   /** Transcrição completa de uma reunião (a evidência aponta o trecho dentro dela). */
   reuniao: (token: string, reuniaoId: number) => requisitar<ReuniaoCompleta>(`/reunioes/${reuniaoId}`, { token }),
+  /** Exige o papel de gerente (403 para os demais). */
+  handoffsRecebidos: (token: string) => requisitar<HandoffRecebido[]>("/handoffs", { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */
