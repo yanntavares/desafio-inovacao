@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: gate-com-permissao-por-papel
+expected_outcome: |
+  Cria um spec em e2e/tests que usa o helper de login por API e busca o lead pelo nome (não por id fixo),
+  confere na tela o botão desabilitado com o motivo escrito (2 pendências bloqueantes abertas no
+  Instituto Horizonte) e confere pela API que outro papel recebe 403, e roda o spec.

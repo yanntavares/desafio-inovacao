@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: confere-historico-sem-print
+expected_outcome: |
+  Usa o projeto e2e/ (Playwright) em vez de screenshots: roda ou escreve testes que conferem o DOM do
+  Histórico para analista dono, outro analista e gerente, roda a suíte contra a stack do docker e
+  informa quantos testes passaram ou falharam.

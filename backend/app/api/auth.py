@@ -56,9 +56,9 @@ def perfis_demo(db: Session = Depends(get_db)):
     """Perfis fictícios para a tela de login (só com DEMO_MODE ligado)."""
     _exigir_demo()
     rotulos = {Papel.COMERCIAL: "vê só os seus leads", Papel.GERENTE: "vê todos os leads",
-               Papel.ADMIN: "Conta administradora única"}
+               Papel.TECNICO: "somente leitura", Papel.ADMIN: "Conta administradora única"}
     out = []
-    for papel in (Papel.COMERCIAL, Papel.GERENTE, Papel.ADMIN):
+    for papel in (Papel.COMERCIAL, Papel.GERENTE, Papel.TECNICO, Papel.ADMIN):
         u = db.scalar(select(Usuario).where(Usuario.papel == papel, Usuario.ativo.is_(True)).order_by(Usuario.id))
         if u:
             out.append({**usuarios.serializar(u), "descricao": rotulos[papel]})

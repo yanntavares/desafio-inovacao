@@ -382,11 +382,22 @@ def historico_documentacao(jornada_id: int, user: Usuario = Depends(usuario_atua
                            db: Session = Depends(get_db)):
     """Histórico de documentação: documentos versionados + pacotes + o que vem após o aceite."""
     j = _jornada(db, user, jornada_id)
-    docs = [_serializar_documento(d) for d in documentos.listar(db, j.id)]
-    pacotes = [{"tipo": "pacote_handoff", **_serializar_pacote(p, db)} for p in pacote.listar(db, j.id)]
+    return _historico_do_lead(documentos.listar(db, j.id), pacote.listar(db, j.id), db)
+
+
+def _historico_do_lead(docs, pacotes, db: Session) -> dict:
+    ds = [_serializar_documento(d) for d in docs]
+    ps = [{"tipo": "pacote_handoff", **_serializar_pacote(p, db)} for p in pacotes]
     pos_aceite = [t.value for t in (TipoDocumento.BRIEFING_PROJETO, TipoDocumento.PAUTA_KICKOFF)
-                  if not any(d["tipo"] == t.value for d in docs)]
-    return {"documentos": docs, "pacotes": pacotes, "apos_o_aceite": pos_aceite}
+                  if not any(d["tipo"] == t.value for d in ds)]
+    return {"documentos": ds, "pacotes": ps, "apos_o_aceite": pos_aceite}
+
+
+@router.get("/historico")
+def historico(user: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Telas 07/07b: histórico de documentação de todos os leads visíveis, por id do lead."""
+    return {str(jid): _historico_do_lead(docs, pacotes, db)
+            for jid, (docs, pacotes) in jornadas.historico(db, user).items()}
 
 
 @router.post("/jornadas/{jornada_id}/documentos", status_code=201)

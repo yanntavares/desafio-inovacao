@@ -45,7 +45,7 @@ def test_login_e_rota_protegida(client, entrar):
 
 
 def test_demo_so_com_modo_ligado(client):
-    assert len(client.get("/auth/demo").json()) == 3
+    assert len(client.get("/auth/demo").json()) == 4
     get = __import__("app.core.config", fromlist=["get_settings"]).get_settings
     get().demo_mode = False
     assert client.get("/auth/demo").status_code == 404

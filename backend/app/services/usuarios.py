@@ -10,7 +10,7 @@ from app.models import Auditoria, Usuario
 from app.models.base import agora
 from app.models.enums import Papel
 from app.services import auditoria, permissoes, seguranca
-from app.services.erros import ErroNegocio, NaoEncontrado
+from app.services.erros import ErroNegocio, NaoEncontrado, SemPermissao
 from app.services.permissoes import ROTULO_PAPEL, Acao
 
 MSG_LOGIN = "E-mail ou senha incorretos."
@@ -121,6 +121,9 @@ def atualizar(db: Session, ator: Usuario, user_id: int, papel: Papel | None, ati
             Usuario.papel == Papel.ADMIN, Usuario.ativo.is_(True), Usuario.id != user.id)) or 0
         if not restantes:
             raise ErroNegocio("A Diretoria precisa de ao menos uma conta ativa.", 409)
+    if user.id == ator.id and novo_papel != user.papel:
+        # a própria sessão perderia o acesso às telas da Diretoria no meio do uso
+        raise SemPermissao("Peça a outra conta da Diretoria para mudar o seu perfil.")
     user.papel, user.ativo = novo_papel, novo_ativo
     auditoria.registrar(db, ator, "atualizar_usuario", "usuario", user.id, None, antes,
                         {"papel": user.papel.value, "ativo": user.ativo})
