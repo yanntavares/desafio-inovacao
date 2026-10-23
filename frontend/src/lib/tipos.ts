@@ -280,6 +280,28 @@ export interface NovoItemEntrada {
   natureza_final: NaturezaItem;
 }
 
+export type AcaoPendencia = "informar" | "esclarecido" | "aceitar_com_risco";
+
+export interface PendenciaItem {
+  id: number;
+  jornada_id: number;
+  /** Categoria (seção) a que a pendência se refere. */
+  campo: CategoriaItem;
+  descricao: string;
+  severidade: "bloqueante" | "atencao";
+  status: "aberta" | "resolvida" | "esclarecida" | "aceita_com_risco";
+  justificativa: string | null;
+  /** Lacuna apontada pela IA (rótulo "origem: IA"). */
+  origem_ia: boolean;
+  pergunta_sugerida: string | null;
+}
+
+export interface ResolucaoPendencia {
+  acao: AcaoPendencia;
+  justificativa?: string;
+  descricao?: string;
+}
+
 export interface SegmentoReuniao {
   ordem: number;
   falante: string;

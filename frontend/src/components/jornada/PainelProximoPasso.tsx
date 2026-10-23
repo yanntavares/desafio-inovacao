@@ -6,6 +6,7 @@ import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { apiJornadas, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { DetalheJornada } from "@/lib/tipos";
+import { AprovarValidacao } from "./AprovarValidacao";
 
 interface PainelProximoPassoProps {
   jornada: DetalheJornada;
@@ -85,6 +86,7 @@ export function PainelProximoPasso({ jornada, aoAgir }: PainelProximoPassoProps)
           >
             {reviso ? "Revisar itens" : "Ver itens"}
           </Link>
+          <AprovarValidacao jornada={jornada} />
         </div>
       );
       break;

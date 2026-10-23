@@ -7,7 +7,9 @@ import { apiJornadas, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { CategoriaItem, Evidencia, ItemRevisao, ReuniaoCompleta, StatusValidacao } from "@/lib/tipos";
 import { useLeitura } from "@/lib/useLeitura";
+import { AprovarValidacao } from "@/components/jornada/AprovarValidacao";
 import { ItemRevisaoLinha } from "./ItemRevisaoLinha";
+import { ListaPendencias } from "./ListaPendencias";
 import { NovoItem } from "./NovoItem";
 import { type Destaque, Transcricao } from "./Transcricao";
 
@@ -36,12 +38,13 @@ export function RevisaoItens({ id }: { id: number }) {
   const reunioes = useRef(new Map<number, ReuniaoCompleta>());
 
   const carregar = useCallback(async () => {
-    const [jornada, visao, itens] = await Promise.all([
+    const [jornada, visao, itens, pendencias] = await Promise.all([
       apiJornadas.detalhe(token, id),
       apiJornadas.visaoGeral(token, id),
       apiJornadas.itens(token, id),
+      apiJornadas.pendencias(token, id),
     ]);
-    return { jornada, visao, itens };
+    return { jornada, visao, itens, pendencias };
   }, [token, id]);
   const { dados, erro, recarregar } = useLeitura(`revisao:${token}:${id}`, carregar, { intervaloMs: 30_000 });
 
@@ -83,8 +86,9 @@ export function RevisaoItens({ id }: { id: number }) {
     );
   }
 
-  const { jornada, visao, itens } = dados;
+  const { jornada, visao, itens, pendencias } = dados;
   const categorias = Object.entries(visao.secoes).map(([valor, s]) => ({ valor: valor as CategoriaItem, titulo: s.titulo }));
+  const titulos = Object.fromEntries(categorias.map((c) => [c.valor, c.titulo]));
   const contagem = (s: StatusValidacao) => itens.filter((i) => i.status_validacao === s).length;
 
   // Motivo escrito de por que a pessoa só lê (a API recusa de qualquer forma).
@@ -110,12 +114,15 @@ export function RevisaoItens({ id }: { id: number }) {
             {jornada.cliente} · {jornada.titulo}
           </p>
         </div>
-        <Link
-          href={`/jornadas/${jornada.id}`}
-          className="inline-flex h-11 items-center rounded-lg border-2 border-azul px-5 font-bold text-azul transition hover:bg-azul-suave focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/30"
-        >
-          Voltar ao lead
-        </Link>
+        <div className="flex flex-col items-end gap-3">
+          <Link
+            href={`/jornadas/${jornada.id}`}
+            className="inline-flex h-11 items-center rounded-lg border-2 border-azul px-5 font-bold text-azul transition hover:bg-azul-suave focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/30"
+          >
+            Voltar ao lead
+          </Link>
+          <AprovarValidacao jornada={jornada} />
+        </div>
       </div>
 
       {motivoSemAcao && (
@@ -147,6 +154,7 @@ export function RevisaoItens({ id }: { id: number }) {
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
         <div className="flex min-w-0 flex-col gap-6">
+          <ListaPendencias pendencias={pendencias} titulos={titulos} motivoSemAcao={motivoSemAcao} aoResolver={recarregar} />
           {categorias.map((c) => {
             const daSecao = visiveis.filter((i) => i.categoria === c.valor);
             if (daSecao.length === 0) return null;

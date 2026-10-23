@@ -17,6 +17,8 @@ import type {
   ItemRevisao,
   LeadEncontrado,
   NovoItemEntrada,
+  PendenciaItem,
+  ResolucaoPendencia,
   ReuniaoCompleta,
   RevisaoItemEntrada,
   LoginEntrada,
@@ -144,6 +146,12 @@ export const apiJornadas = {
     requisitar<ItemRevisao>(`/jornadas/${id}/itens`, { metodo: "POST", corpo: dados, token }),
   revisarItem: (token: string, itemId: number, dados: RevisaoItemEntrada) =>
     requisitar<ItemRevisao>(`/itens/${itemId}`, { metodo: "PATCH", corpo: dados, token }),
+  pendencias: (token: string, id: number) => requisitar<PendenciaItem[]>(`/jornadas/${id}/pendencias`, { token }),
+  resolverPendencia: (token: string, pendenciaId: number, dados: ResolucaoPendencia) =>
+    requisitar<PendenciaItem>(`/pendencias/${pendenciaId}/resolver`, { metodo: "POST", corpo: dados, token }),
+  /** G2: sem pendência bloqueante aberta (ou aceita com risco e justificativa); só o analista responsável. */
+  aprovarValidacao: (token: string, id: number) =>
+    requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/validar`, { metodo: "POST", token }),
   /** Transcrição completa de uma reunião (a evidência aponta o trecho dentro dela). */
   reuniao: (token: string, reuniaoId: number) => requisitar<ReuniaoCompleta>(`/reunioes/${reuniaoId}`, { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
