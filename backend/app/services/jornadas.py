@@ -1,11 +1,12 @@
 """Jornada = lead + negócio. Cadastro de reunião, kanban, visibilidade e detalhe do lead."""
 
+from collections import defaultdict
 from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Item, Job, Jornada, Pendencia, Reuniao, Usuario
+from app.models import Documento, Item, Job, Jornada, PacoteHandoff, Pendencia, Reuniao, Usuario
 from app.models.enums import (
     EstadoJornada as E,
 )
@@ -63,6 +64,29 @@ def _consulta_visivel(usuario: Usuario):
     if not permissoes.pode(usuario, Acao.VER_TODOS_LEADS):
         q = q.where(Jornada.responsavel_id == usuario.id)
     return q
+
+
+def historico(db: Session, usuario: Usuario) -> dict[int, tuple[list[Documento], list[PacoteHandoff]]]:
+    """Histórico (07/07b) de todos os leads visíveis numa consulta por tabela, sem uma ida por lead.
+
+    O gerente vê só os leads cujo pacote foi enviado a ele (a mesma regra da fila `/handoffs`).
+    """
+    consulta = _consulta_visivel(usuario).with_only_columns(Jornada.id)
+    if usuario.papel == Papel.GERENTE:
+        consulta = consulta.where(Jornada.gerente_id == usuario.id)
+    ids = list(db.scalars(consulta))
+    docs: dict[int, list[Documento]] = defaultdict(list)
+    pacotes: dict[int, list[PacoteHandoff]] = defaultdict(list)
+    if ids:
+        for d in db.scalars(select(Documento).where(Documento.jornada_id.in_(ids))
+                            .order_by(Documento.criado_em, Documento.id)):
+            docs[d.jornada_id].append(d)
+        for p in db.scalars(select(PacoteHandoff).where(PacoteHandoff.jornada_id.in_(ids))
+                            .order_by(PacoteHandoff.versao)):
+            pacotes[p.jornada_id].append(p)
+    if usuario.papel == Papel.GERENTE:
+        ids = [i for i in ids if pacotes[i]]
+    return {i: (docs[i], pacotes[i]) for i in ids}
 
 
 # --- completude e contagens -------------------------------------------------------

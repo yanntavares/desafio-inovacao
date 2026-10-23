@@ -143,6 +143,13 @@ def gerar(db: Session, jornada: Jornada, usuario: Usuario, tipo: TipoDocumento) 
     return doc
 
 
+def _remapear_vinculos(antigo: str, vinculos: list[dict], novo: str) -> list[dict]:
+    """O vínculo aponta o índice da linha: segue a linha de texto idêntico; linha nova ou alterada fica sem evidência."""
+    linhas = antigo.splitlines()
+    por_texto = {linhas[v["paragrafo"]]: v["item_ids"] for v in vinculos if v["paragrafo"] < len(linhas)}
+    return [{"paragrafo": i, "item_ids": por_texto[t]} for i, t in enumerate(novo.splitlines()) if t in por_texto]
+
+
 def editar(db: Session, doc: Documento, usuario: Usuario, conteudo_md: str) -> Documento:
     """Rascunho edita no lugar; aprovado é imutável e a edição gera nova versão."""
     permissoes.exigir(usuario, Acao.EDITAR_DOCUMENTO_COMERCIAL)
@@ -153,16 +160,17 @@ def editar(db: Session, doc: Documento, usuario: Usuario, conteudo_md: str) -> D
         raise SemPermissao("Este lead pertence a outro analista.")
     itens = [i.descricao for i in _itens_validados(db, doc.jornada_id)]
     conferir_numeros("\n".join(conteudo_md.splitlines()[1:]), itens)
+    vinculos = _remapear_vinculos(doc.conteudo_md, doc.itens or [], conteudo_md)
     if doc.status == StatusDocumento.APROVADO:
         novo = Documento(jornada_id=doc.jornada_id, tipo=doc.tipo, versao=_proxima_versao(db, doc.jornada_id, doc.tipo),
-                         conteudo_md=conteudo_md, itens=doc.itens)
+                         conteudo_md=conteudo_md, itens=vinculos)
         db.add(novo)
         db.flush()
         auditoria.registrar(db, usuario, "nova_versao_documento", "documento", novo.id, doc.jornada_id,
                             {"versao": doc.versao}, {"versao": novo.versao})
         return novo
     antes = {"conteudo_md": doc.conteudo_md}
-    doc.conteudo_md = conteudo_md
+    doc.conteudo_md, doc.itens = conteudo_md, vinculos
     auditoria.registrar(db, usuario, "editar_documento", "documento", doc.id, doc.jornada_id, antes,
                         {"conteudo_md": conteudo_md})
     return doc

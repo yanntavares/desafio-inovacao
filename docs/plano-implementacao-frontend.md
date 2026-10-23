@@ -1,6 +1,6 @@
 # Plano de Implementação do Front-end 
 
-> **Estado em:** 22/10/2026
+> **Estado em:** 23/10/2026
 >
 > **Entrega Alvo:** 22/10/2026 (Meta Interna)
 >
@@ -27,6 +27,8 @@ Branch `feature/frontend-conciliado`, a partir desta (`feature/frontend-telas`).
 
 - **Próximo passo + G2:** `PainelProximoPasso` ficou só com extração e falha ("Tentar de novo"); a validação (G2) é o `PainelValidacaoG2` deles. Meu `AprovarValidacao` e `ListaPendencias` foram removidos como duplicados.
 
+- **Documentos, G4 e conclusão (23/10, branch `feature/frontend-documentos-g4`):** `jornada/PainelDocumento` abre o documento na página do lead (pela linha do Histórico de documentação ou logo após gerar): markdown por linha, parágrafo ligado a itens abre a evidência (`TrechoEvidencia`), Exportar .md (gera o arquivo do `conteudo_md` já carregado, mesmo corpo de `/exportar`), Editar (só documento comercial e analista responsável; aprovado vira nova versão) e Aprovar (briefing de projeto usa o motivo de `gates.G4`; os demais, o dono do documento). `PainelProximoPasso` ganhou: analista em `EM_VALIDACAO`/`VALIDADA` gera resumo e briefing comercial; gerente designado em `ACEITO` gera/aprova o briefing (G4); em `BRIEFING_APROVADO` gera/aprova a pauta e "Concluir jornada" (desabilitado com "Aprove a pauta de kickoff antes de concluir."). Outros perfis veem quem age. Também: técnico no seletor de perfil (`SwitchModoDemo`) e "Recarregar demonstração" na Diretoria (`diretoria/RecarregarDemo`, com confirmação; entra de novo como Diretoria porque as contas são recriadas). **Testado no navegador** (MCP Playwright, API em SQLite com o seed, sem Docker): Camila na Rede Folha gerou briefing → evidência a um clique → G4 → pauta → aprovou → concluiu (estado `CONCLUIDA`); Rafael no mesmo lead vê "Aguardando Camila Reis…"; técnico com o seletor em "Equipe técnica" abre o briefing só com Exportar/Fechar; Marina no Mercado Pátio gerou resumo comercial, a edição com "R$ 98.765" foi recusada com a mensagem da API, aprovou e editar criou a v2 em rascunho; Diretoria recarregou a demonstração e continuou logada. Ainda em 23/10 (riscos corrigidos): o Histórico (07/07b) usa `GET /historico`, uma chamada para todos os leads visíveis no lugar de uma por lead (conferido no navegador: 4 chamadas fixas); a trilha da página do lead termina no nome do cliente (`lib/migalha.ts`, trazido da primeira branch); CSP em `next.config.ts` sem erro no console no fluxo histórico → documento → exportar; e2e do cadastro de reunião (`e2e/tests/reuniao.spec.ts`); depois de convidar, a Diretoria vê o link de cadastro para repassar (o back não envia e-mail); `CORS_ORIGENS` documentado no `.env.example` e no README. Também em 23/10: os vínculos parágrafo → item seguem o texto quando o documento é editado (o back remapeia por linha idêntica; linha nova fica sem evidência); as linhas de documento do Histórico (07/07b) abrem o lead já com o documento aberto (`?documento=N`); a Diretoria não muda o próprio perfil (API 403 com motivo e select da própria linha desabilitado); "Cancelar" no cadastro de reunião pede confirmação quando há algo digitado. `tsc`, `eslint` e `next build` limpos. e2e em `e2e/tests/documentos.spec.ts`, passando (ver Testes e2e abaixo).
+
 **Correção (22/10):** a página do lead **não** foi portada da outra branch e isso foi um erro de avaliação. A outra tem o que esta não tem: ação "Tentar de novo" na falha de extração, "Aprovar validação" (G2) e atualização automática enquanto a extração roda. Aqui o card do kanban manda "abrir o lead e tentar de novo", mas a página não tem o botão (beco sem saída).
 
 **Lacunas contra `docs/requisitos-enxutos.docx` e `docs/user-stories.docx`** (o back tem o endpoint em todos os casos; falta a tela):
@@ -34,23 +36,23 @@ Branch `feature/frontend-conciliado`, a partir desta (`feature/frontend-telas`).
 | Prioridade | Lacuna | Histórias / capacidades | Endpoint pronto |
 | --- | --- | --- | --- |
 | 1 | ~~"Tentar de novo" na falha de extração e polling da página do lead durante a extração~~ **feito** (ver abaixo) | C4, C5 | `POST /jornadas/{id}/extracao/tentar-novamente` |
-| 1 | ~~Revisão G2: itens ao lado da evidência; confirmar, editar, rejeitar, adicionar; seletor de natureza~~ **feito** (integrado, e2e pendente) | C6, C7, C8 (cap. 5) | `GET/POST /jornadas/{id}/itens`, `PATCH /itens/{id}` |
-| 1 | ~~Pendências: Informar / Esclarecido / Aceitar com risco + justificativa; lista com link no bloqueio do G2~~ **feito (versão do time), e2e pendente** | C9 (cap. 4) | `GET /jornadas/{id}/pendencias`, `POST /pendencias/{id}/resolver` |
-| 1 | ~~Botão "Aprovar validação" (G2) com o motivo escrito~~ **feito ("Confirmar documentação (G2)", versão do time), e2e pendente** | C10 | `POST /jornadas/{id}/validar` |
-| 1 | Documentos: gerar, editar, aprovar, exportar .md, parágrafos clicáveis até a evidência, bloqueio por número inventado | C11, G5, G6 (cap. 6 e 10) | `POST /jornadas/{id}/documentos`, `PUT/GET /documentos/{id}`, `/aprovar`, `/exportar` |
-| 1 | G4: gerente revisa e aprova o briefing; concluir a jornada | G5, G6 | `POST /documentos/{id}/aprovar`, `POST /jornadas/{id}/concluir` |
+| 1 | ~~Revisão G2: itens ao lado da evidência; confirmar, editar, rejeitar, adicionar; seletor de natureza~~ **feito** (integrado, com e2e) | C6, C7, C8 (cap. 5) | `GET/POST /jornadas/{id}/itens`, `PATCH /itens/{id}` |
+| 1 | ~~Pendências: Informar / Esclarecido / Aceitar com risco + justificativa; lista com link no bloqueio do G2~~ **feito (versão do time), com e2e** | C9 (cap. 4) | `GET /jornadas/{id}/pendencias`, `POST /pendencias/{id}/resolver` |
+| 1 | ~~Botão "Aprovar validação" (G2) com o motivo escrito~~ **feito ("Confirmar documentação (G2)", versão do time), com e2e** | C10 | `POST /jornadas/{id}/validar` |
+| 1 | ~~Documentos: gerar, editar, aprovar, exportar .md, parágrafos clicáveis até a evidência, bloqueio por número inventado~~ **feito (23/10), com e2e** | C11, G5, G6 (cap. 6 e 10) | `POST /jornadas/{id}/documentos`, `PUT/GET /documentos/{id}`, `/aprovar`, `/exportar` |
+| 1 | ~~G4: gerente revisa e aprova o briefing; concluir a jornada~~ **feito (23/10), com e2e** | G5, G6 | `POST /documentos/{id}/aprovar`, `POST /jornadas/{id}/concluir` |
 | 2 | Fila do gerente (pacotes designados, versão, completude, pendências) | G1 | `GET /handoffs` |
 | 2 | Faixa com o comentário do gerente quando devolve o pacote | tabela de bloqueios | já vem no detalhe do lead (conferir) |
-| 2 | Perfil técnico: usuário técnico e Modo demonstração já existem no seed; faltam o seletor de perfil do menu e as telas de briefing/pauta só leitura | T1, T2 | `GET /documentos/{id}` |
-| 2 | "Recarregar demonstração" na Diretoria | A2 | `POST /demo/recarregar` |
+| 2 | ~~Perfil técnico: seletor de perfil do menu e briefing/pauta só leitura~~ **feito (23/10)** | T1, T2 | `GET /documentos/{id}` |
+| 2 | ~~"Recarregar demonstração" na Diretoria~~ **feito (23/10)** | A2 | `POST /demo/recarregar` |
 | 3 | Ver o texto da reunião (aba Reuniões só lista metadados) | cap. 11 | `GET /reunioes/{id}` |
 | 3 | Pacotes: histórico de versões e prévia das 16 seções antes de enviar | C12 | `GET /jornadas/{id}/pacotes`, `GET /pacotes/{id}` |
 | 3 | Auditoria global na Diretoria; painel de IA (Should) | A3 | `GET /auditoria` |
 
-Sem 1 (G2, pendências, documentos, G4) a demonstração ponta a ponta pela interface para em "Em validação": o analista não consegue validar nem avançar. Hoje só dá para percorrer o fluxo pela API (`/docs`).
-- Não verificado: troca de perfil pelo seletor do menu, abrir notificações e busca com resultado na interface (só renderização e o fluxo de login). A aprovação de gates (G3) também não foi clicada.
+Com a prioridade 1 feita, a demonstração ponta a ponta percorre a interface inteira, do cadastro de reunião à jornada concluída.
+- Não verificado no navegador: abrir notificações e busca com resultado. Troca de perfil pelo seletor e o G3 agora têm e2e.
 - **Cache do Next no Windows:** o bind mount não dispara recompilação de arquivos já compilados. Se uma edição não aparecer, rode `docker compose exec frontend sh -c 'rm -rf .next/*'` e `docker compose restart frontend`.
-- **Testes e2e (Playwright)** em `e2e/` (projeto próprio; `make e2e` ou `cd e2e && E2E_NAVEGADOR=msedge npx playwright test`; a stack precisa estar no ar). Conferem o DOM, não imagem. **31 passam e 1 está `fixme`** (rodado em 22/10 contra o docker, no Edge): login em 1 clique por perfil e erros, kanban por papel (carteira, colunas, bloqueantes, filtros), Histórico por papel, página do lead (gate G3 por papel com motivo escrito, 403 da API sem botão, G2 com contagem de bloqueantes, evidência a um clique, dado mascarado, lead de outro analista) e "Tentar de novo" (atualização automática e sem itens duplicados). A suíte recarrega a demonstração (`POST /demo/recarregar`) e acha os leads pelo nome, porque os ids mudam. Guia de uso em `.claude/skills/testar-com-playwright/`. **`fixme`:** o seletor de perfil do menu não lista o técnico. Ainda sem e2e: cadastro de conta, cadastro de reunião, Diretoria (usuários, convite) e troca de perfil no menu. **Depois do merge com a branch do time:** os specs `revisao` e `historico` foram removidos (as telas que testavam mudaram) e precisam ser reescritos para o `RevisaoG2` inline e para `/historico/enviadas` e `/recebidas`; os demais (login, kanban, lead, extração) continuam valendo, mas **não foram reexecutados depois do merge**.
+- **Testes e2e (Playwright)** em `e2e/` (projeto próprio; `make e2e`, que baixa o Chromium da revisão do Playwright instalado se faltar, ou `E2E_NAVEGADOR=chrome|msedge make e2e` com o navegador da máquina; a stack precisa estar no ar). O primeiro `make e2e` no Docker (23/10) falhou inteiro por falta do Chromium no cache do WSL, não por código; o alvo passou a baixá-lo. Conferem o DOM, não imagem. A suíte recarrega a demonstração (`POST /demo/recarregar`) e acha os leads pelo nome, porque os ids mudam; specs que alteram dados (`documentos`, `revisao`) recarregam de novo antes e depois. Guia em `.claude/skills/testar-com-playwright/`. **Rodado em 23/10: 39 passam** (Chrome, sem Docker: API em SQLite na :8001 com o seed e front `next build` na :3001, via `E2E_API_URL`/`E2E_FRONT_URL`): login por perfil (inclui o técnico no seletor, antigo `fixme`), kanban por papel, página do lead (G3 por papel, 403 sem botão, evidência, mascaramento), **revisão G2** (natureza começa vazia, confirmar grava, aceitar com risco exige justificativa, G2 libera sem bloqueantes), **histórico** enviadas/recebidas (carteira por papel; o documento abre já aberto no lead) e **documentos/G4** (outro gerente vê quem age; técnico só lê; 403 da API ao analista; número fora dos itens recusado; Rafael leva a Clínica Vitalis do aceite à conclusão). **Não rodado:** `extracao.spec` ("Tentar de novo"), que monta a falha com `docker compose exec db psql`; e a suíte contra o PostgreSQL do compose. Ainda sem e2e: cadastro de conta e Diretoria (usuários, convite, recarregar). O cadastro de reunião tem e2e (`reuniao.spec`).
 - `tsc` e `eslint` rodam no container (`docker compose exec -T frontend npx tsc --noEmit` e `npm run lint`); no host o `eslint` não existe.
 
 ## 1. Mapeamento de Telas Prototipadas vs. Rotas e Endpoints
@@ -152,6 +154,8 @@ src/
 
 ## 3.1 Estado da implementação
 
+> Nota (23/10): os "Não testado no navegador" desta seção foram escritos antes da conciliação; o estado atual de testes está na seção 0.
+
 ### Já existe — Autenticação e Shell Base (`01` e `02`)
 
 Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas pré-renderizadas como estáticas). **Não testado no navegador nem contra a API rodando**; não há testes automatizados de front.
@@ -159,7 +163,7 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build` (todas as rotas 
 * **Sessão:** `lib/auth/AuthContext.tsx` guarda `{token, usuario, demo}` no `localStorage` (`ponte.sessao`) via `useSyncExternalStore` (sincroniza abas), renova o token por `POST /auth/renovar` a cada 30 min e encerra a sessão em caso de 401. `lib/auth/guardas.ts`: `useRedirecionarSeLogado` (telas públicas) e `useExigirSessao` (grupo `(app)`), que manda para o login quem não tem sessão e para a rota inicial do papel quem abre uma rota de outro papel. É só conveniência: quem barra é a API.
 * **Cliente HTTP:** `lib/api.ts` (`requisitar` + `apiAuth`) lê `NEXT_PUBLIC_API_URL`, envia o Bearer e transforma `{detail, codigo}` em `ErroApi` com a mensagem do back. `NEXT_PUBLIC_EMAIL_DOMINIO` (padrão `seedabit.org.br`) só orienta o formulário.
 * **`/cadastro`:** validação nativa espelhando `usuarios.cadastrar_conta` (nome, domínio do e-mail, senha com 10+ caracteres, letras e números, confirmação, LGPD). O erro da API aparece em alerta. A conta entra como analista e é redirecionada.
-* **`/login`:** e-mail e senha; "Esqueci a senha" desabilitado com o motivo no `title`. **Modo demonstração** carregado de `GET /auth/demo`; a seção some quando a API responde 404 (`DEMO_MODE` desligado). *Decisão:* clicar no perfil **seleciona e preenche** o e-mail (a senha fica desabilitada) e o botão "Entrar como …" confirma via `POST /auth/demo`. Digitar outro e-mail desfaz a seleção.
+* **`/login`:** e-mail e senha; "Esqueci a senha" desabilitado com o motivo no `title`. **Modo demonstração** carregado de `GET /auth/demo`; a seção some quando a API responde 404 (`DEMO_MODE` desligado). *Decisão (revista na conciliação):* clicar no perfil entra em **1 clique** via `POST /auth/demo`.
 * **Shell `(app)`:** `SidebarNav` com menu por papel (`lib/rotas.ts`, espelhando as telas 03/04/04b), `SwitchModoDemo` no rodapé (troca o papel na hora só em sessão de demonstração; fora dela mostra o perfil fixo), `HeaderBreadcrumb` e botão Sair. Rota inicial: analista → `/kanban/meus-leads`, gerente e técnico → `/kanban/geral`, Diretoria → `/diretoria`.
 * **Páginas provisórias** (`EmConstrucao`): `/kanban/meus-leads`, `/kanban/geral`, `/diretoria`, `/diretoria/usuarios`, `/historico` (hoje `/historico/enviadas` e `/recebidas`) e `/jornadas/[id]` (destino após cadastrar reunião; `export const instant = false` porque o layout `(app)` lê `usePathname` fora de `<Suspense>`).
 * **Identidade:** tokens de cor no `@theme` de `globals.css` (marinho, lima, azul), Inter via `next/font`, borda recortada por `clip-path` com semente fixa (`components/marca/recorte.ts`) e ícones em SVG inline (`components/icones.tsx`), sem novas dependências.
@@ -186,6 +190,7 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 * **Colunas e cards:** as 6 etapas vêm da API ("Concluída" fica no histórico); coluna vazia mostra "Nenhum lead". Card com cliente, negócio, iniciais e primeiro nome do analista, nº de reuniões, chip lima "N bloq." (e borda lima), chips "Extraindo…" / "Falha na extração" e barra de completude (azul até a validação, verde depois). Clicar abre `/jornadas/{id}`. Em telas menores que `xl` o quadro rola na horizontal dentro do shell.
 * **Componentes novos:** `kanban/QuadroKanban`, `kanban/ColunaKanban`, `kanban/CardLead`, `kanban/FiltrosKanban`; tipos `CardLead`, `ColunaKanban`, `RespostaKanban`, `FiltrosKanban`, `EtapaKanban` em `lib/tipos.ts`.
 * *Decisão:* cores pelos tokens do `@theme` (tirados das telas), não por hex novos.
+* *Decisão:* o filtro de negócios lista só leads não concluídos (`/reunioes/opcoes`), o que basta porque o quadro não mostra concluídos.
 
 ### Já existe — Página da jornada e Gate G3 (`06`)
 
@@ -218,7 +223,7 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado no navegador nem contra a API rodando.**
 
 * **Onde:** com a jornada em `EM_VALIDACAO`, a aba "Visão geral" do lead troca a tabela de leitura por `jornada/RevisaoG2` e o painel lateral de handoff por `jornada/PainelValidacaoG2`. Fora desse estado tudo volta a ser leitura.
-* **`RevisaoG2`:** itens por seção (`GET /jornadas/{id}/itens`), cada um com origem, "IA propõe: …" enquanto não houver decisão, situação (A revisar/Confirmado/Editado/Rejeitado) e evidência a um clique. O analista responsável escolhe a natureza (pré-selecionada com a proposta da IA, mas só vale ao confirmar) e confirma, edita o texto ou rejeita (`PATCH /itens/{id}`). Pendências (`GET /jornadas/{id}/pendencias`) com severidade, "origem: IA", pergunta sugerida e as três ações de `POST /pendencias/{id}/resolver`: informar dado (só quando o campo é uma das 16 seções), esclarecido (justificativa opcional) e aceitar com risco (justificativa obrigatória). Quem não é o responsável vê tudo em leitura.
+* **`RevisaoG2`:** itens por seção (`GET /jornadas/{id}/itens`), cada um com origem, "IA propõe: …" enquanto não houver decisão, situação (A revisar/Confirmado/Editado/Rejeitado) e evidência a um clique. O analista responsável escolhe a natureza (começa vazia; a proposta da IA aparece só como dica) e confirma, edita o texto ou rejeita (`PATCH /itens/{id}`). Pendências (`GET /jornadas/{id}/pendencias`) com severidade, "origem: IA", pergunta sugerida e as três ações de `POST /pendencias/{id}/resolver`: informar dado (só quando o campo é uma das 16 seções), esclarecido (justificativa opcional) e aceitar com risco (justificativa obrigatória). Quem não é o responsável vê tudo em leitura.
 * **`PainelValidacaoG2`:** itens a revisar, bloqueantes e seções N/16; botão **"Confirmar documentação (G2)"** desabilitado com o motivo de `gates.G2` (com orientação sobre as pendências). Confirmar pede uma segunda confirmação, avisa quantos itens não revisados irão ao pacote como "Sugestão da IA" e chama `POST /jornadas/{id}/validar`. Ao validar, a página recarrega e o `PainelHandoffGate` mostra o envio do handoff ao gerente.
 * **Refatoração:** `jornada/TrechoEvidencia` (evidência compartilhada pela leitura e pela revisão) e `jornada/HistoricoDocumentos` (`linhasDocumentos` + `ListaDocumentos`, usados no lead e no histórico). Linha do tempo ganhou os rótulos `pendencia_*`.
 * *Decisões (com o time):* revisão item a item + botão na própria página do lead, sem rota nova. O G2 **não** exige todos os itens revisados porque a API só bloqueia por pendência bloqueante; o aviso na confirmação deixa isso explícito.
@@ -235,18 +240,10 @@ Verificado com `tsc --noEmit`, `npm run lint` e `npm run build`. **Não testado 
 
 ### Riscos e pendências
 
-* Token em `localStorage` fica exposto a XSS. Foi aceito para o MVP; a alternativa seria cookie httpOnly via proxy do Next.
-* `CORS_ORIGENS` do back precisa incluir a origem do front (padrão `http://localhost:3000`).
-* Falta conferir a fidelidade visual das telas 01 e 02 no navegador e o fluxo ponta a ponta com o seed (`python -m app.seed`).
-* O perfil técnico não tem tela própria; usa o kanban geral em leitura.
-* Cadastro de reunião: falta conferir no navegador contra a API (upload multipart, CORS com `Authorization`) e a fidelidade visual da tela 05. A pré-visualização envia o arquivo inteiro a cada troca; aceitável no limite de 15 mil palavras.
-* O botão "Cancelar" descarta o formulário sem confirmação.
-* Kanban: a busca do header ("Buscar lead, negócio…" das telas 04/04b) ainda não existe; a API já aceita `q` em `GET /kanban` e há `GET /busca`. Sem atualização automática: um card em "Extraindo…" só muda ao recarregar ou trocar filtro.
-* Página do lead: o breadcrumb ainda mostra "Kanban de leads" sem o nome do cliente (o header não conhece a jornada). Não há tela de briefing/pauta (G4) nem de geração/edição de resumo e briefing comercial. Documentos do histórico ainda não abrem (a linha leva ao lead).
-* Revisão G2: cada ação recarrega a página inteira (7 GETs); aceitável no volume do MVP. Não há inclusão manual de item (`POST /jornadas/{id}/itens`) na interface.
-* Histórico: N+2 requisições (uma por lead). Com 22 leads é aceitável; acima disso vale o endpoint agregado no back. Sem paginação.
-* Diretoria: trocar o próprio perfil é aceito pela API (só barra a última conta da Diretoria); a sessão passa a receber 403 nas telas da Diretoria até sair e entrar de novo. Convite não envia e-mail (o back só cria a conta pendente).
-* Kanban: o filtro de negócios lista só leads não concluídos (`/reunioes/opcoes`), o que basta porque o quadro não mostra concluídos.
+* Token em `localStorage`: mitigado com CSP (`next.config.ts`; `connect-src` só libera a própria origem e a API, então um script injetado não envia o token a outro domínio). O risco de XSS ler o token continua; a correção completa é cookie httpOnly via proxy do Next com proteção CSRF, depois da entrega.
+* Redação de documentos é síncrona na requisição: instantânea com `LLM_PROVIDER=mock`; com o Claude real, medir antes da demonstração e, se passar de alguns segundos, mover para job (fase 2 do back). Medição adiada (decisão de 23/10).
+* Revisão G2: cada ação recarrega a página inteira (7 GETs). Custo fixo por lead, não cresce com a carteira; aceito no MVP. Gatilho para mudar: lentidão perceptível dentro de um lead.
+* Histórico: sem paginação (todas as linhas dos leads visíveis numa resposta). Gatilho: centenas de documentos por perfil.
 
 ## 4. Regras Visuais e Trava de Invariantes
 

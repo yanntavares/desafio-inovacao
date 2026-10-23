@@ -13,6 +13,7 @@ Ou, sem make: `cp .env.example .env && docker compose up --build`
 
 - API: http://localhost:8000 (documentação em `/docs`, saúde em `/health`)
 - O serviço `api` roda `alembic upgrade head` antes de iniciar.
+- Front em outra porta ou domínio: inclua a origem em `CORS_ORIGENS` no `.env` (padrão `http://localhost:3000`), senão o navegador barra as chamadas à API.
 - `LLM_PROVIDER=mock` por padrão: nenhuma chamada paga de IA. Para usar o Claude: `LLM_PROVIDER=anthropic` e `ANTHROPIC_API_KEY` no `.env` (modelo em `LLM_MODELO`, padrão `claude-sonnet-5-5`); depois `docker compose up -d api worker` para recarregar.
 
 ## Comandos
@@ -21,6 +22,7 @@ Ou, sem make: `cp .env.example .env && docker compose up --build`
 | --- | --- |
 | `make test` | roda os testes do backend em SQLite (`uv sync --extra dev` em `backend/` antes) |
 | `make test-pg` | roda os mesmos testes no PostgreSQL do compose (banco `handoff_teste`); se já houver um Postgres local na 5432, defina `DB_PORT=5433` no `.env` |
+| `make e2e` | testes do front no navegador (Playwright) contra a stack no ar; na primeira vez baixa o Chromium da versão certa. `E2E_NAVEGADOR=chrome make e2e` usa o Chrome instalado, sem download |
 | `make migrate` | aplica as migrações no container |
 | `make revision m="texto"` | gera nova migração a partir dos models |
 | `make logs` | acompanha api e worker |
@@ -86,10 +88,20 @@ pelo login normal, a senha de todos é `demonstracao1`:
 | Gerente de projetos | `rafael.lima@seedabit.org.br` (e `camila.reis`) | todos os leads |
 | Diretoria | `diretoria@seedabit.org.br` | todos; gerencia usuários, não aprova |
 
-Roteiro sugerido: **Instituto Horizonte** (em validação, com pendências bloqueantes: G2 bloqueado
-com motivo) → **Mercado Pátio** (validado: enviar handoff) → **Clínica Vitalis** (handoff
-aguardando o Rafael: resumo gerencial, aceitar ou devolver, G3) → **Rede Folha** (aceito pela
-Camila: briefing de projeto e G4). A Diretoria recarrega tudo com `POST /demo/recarregar`.
+Roteiro sugerido, todo pela interface e com os cards do Modo demonstração (o card "Gerente" entra
+como Rafael):
+
+1. **Analista · Instituto Horizonte** (em validação): G2 bloqueado com o motivo; a natureza do item
+   começa vazia ("a IA não decide"); evidência a um clique; "Aceitar com risco" pede justificativa.
+2. **Analista · Mercado Pátio** (validado): gerar o resumo comercial, clicar num parágrafo até o
+   trecho da transcrição, tentar incluir um valor que não está nos itens (a API recusa) e enviar
+   o handoff ao Rafael.
+3. **Gerente · Clínica Vitalis** (handoff aguardando o Rafael), do começo ao fim: aceitar a versão
+   do pacote (G3) → gerar e aprovar o briefing de projeto (G4) → gerar e aprovar a pauta de kickoff
+   → concluir. O lead sai do kanban e aparece em Histórico.
+4. **Equipe técnica**: abrir o briefing pelo Histórico; só lê e exporta.
+5. **Diretoria**: funil, usuários e matriz com a trava "não aprova nada por outra pessoa";
+   "Recarregar demonstração" volta tudo ao início para o próximo ensaio.
 
 ## Endpoints
 
@@ -122,6 +134,7 @@ Erros de regra voltam como `{detail, codigo}` em português (403 por papel, 409 
 
 ## Situação e próximos passos
 
-O back cobre a fatia ponta a ponta; o que falta e as decisões tomadas estão em
-`docs/plano-implementacao-backend.md`. Pendente: rodar com a chave real da Anthropic e medir
-custo e latência; front a partir das telas em `docs/telas/`.
+Back e front cobrem a fatia ponta a ponta pela interface, do cadastro de reunião à jornada
+concluída (roteiro acima). O estado, as decisões e os riscos em aberto estão em
+`docs/plano-implementacao-backend.md` e `docs/plano-implementacao-frontend.md`. Pendente: rodar
+com a chave real da Anthropic e medir custo e latência.

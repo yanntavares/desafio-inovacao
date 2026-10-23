@@ -172,6 +172,28 @@ def test_g4_com_gerente_errado_e_recusado(client, db, entrar):
     assert folha.estado == EstadoJornada.ACEITO
 
 
+def test_editar_documento_mantem_o_vinculo_com_a_linha_certa(client, db, entrar):
+    patio = _lead(db, "Mercado Pátio")  # validada pela Marina
+    h = entrar("marina.costa")
+    r = client.post(f"/jornadas/{patio.id}/documentos", headers=h, json={"tipo": "resumo_comercial"})
+    assert r.status_code == 201, r.text
+    doc = r.json()
+    linhas = doc["conteudo_md"].splitlines()
+    vinculo = doc["itens"][0]
+    texto_vinculado = linhas[vinculo["paragrafo"]]
+    # uma linha nova logo abaixo do título desloca todas as outras
+    novo = "\n".join([linhas[0], "Observação do analista.", *linhas[1:]])
+    r = client.put(f"/documentos/{doc['id']}", headers=h, json={"conteudo_md": novo})
+    assert r.status_code == 200, r.text
+    editado = r.json()
+    novas = editado["conteudo_md"].splitlines()
+    mapa = {v["paragrafo"]: v["item_ids"] for v in editado["itens"]}
+    assert novas[vinculo["paragrafo"] + 1] == texto_vinculado
+    assert mapa[vinculo["paragrafo"] + 1] == vinculo["item_ids"]
+    assert 1 not in mapa  # a linha nova não tem evidência
+    assert len(editado["itens"]) == len(doc["itens"])
+
+
 # --- 2. quem valida não aceita ----------------------------------------------------
 
 def test_quem_validou_nao_aceita_o_proprio_handoff_mesmo_virando_gerente(client, db, entrar):

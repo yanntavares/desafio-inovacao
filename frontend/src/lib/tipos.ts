@@ -300,6 +300,20 @@ export interface DocumentoResumo {
   criado_em: string;
 }
 
+export type TipoDocumento =
+  | "resumo_comercial"
+  | "briefing_comercial"
+  | "resumo_gerencial"
+  | "briefing_projeto"
+  | "pauta_kickoff";
+
+/** `paragrafo` é o índice da linha do markdown (a partir de 0) que cita os itens. */
+export interface DocumentoCompleto extends DocumentoResumo {
+  jornada_id: number;
+  conteudo_md: string;
+  itens: { paragrafo: number; item_ids: number[] }[];
+}
+
 export interface HistoricoDocumentacao {
   documentos: DocumentoResumo[];
   pacotes: PacoteHandoff[];
@@ -410,13 +424,4 @@ export interface ResolucaoPendencia {
   acao: "informar" | "esclarecido" | "aceitar_com_risco";
   justificativa?: string;
   descricao?: string;
-}
-
-/** Fila do gerente (`GET /handoffs`): leads com pacote designado a ele. */
-export interface HandoffRecebido {
-  jornada_id: number;
-  cliente: string;
-  titulo: string;
-  estado: EstadoJornada;
-  pacote: PacoteHandoff;
 }

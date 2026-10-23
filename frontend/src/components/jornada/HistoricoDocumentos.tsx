@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatarData } from "@/lib/formato";
 import type { EstadoJornada, HistoricoDocumentacao } from "@/lib/tipos";
 
-const TIPO_DOCUMENTO: Record<string, string> = {
+export const TIPO_DOCUMENTO: Record<string, string> = {
   resumo_comercial: "Resumo comercial",
   briefing_comercial: "Briefing comercial",
   resumo_gerencial: "Resumo gerencial",
@@ -23,6 +23,8 @@ const COR_SELO: Record<Tom, { fundo: string; ponto: string }> = {
 export interface LinhaDocumento {
   chave: string;
   jornadaId: number;
+  /** Só documentos abrem dentro do lead (pacotes e "após o aceite" não). */
+  documentoId?: number;
   titulo: string;
   sub: string;
   versao: string;
@@ -49,6 +51,7 @@ export function linhasDocumentos(historico: HistoricoDocumentacao, ctx: Contexto
       (d): LinhaDocumento => ({
         chave: `${ctx.jornadaId}-d${d.id}`,
         jornadaId: ctx.jornadaId,
+        documentoId: d.id,
         titulo: TIPO_DOCUMENTO[d.tipo] ?? d.tipo,
         sub: `${prefixo}${formatarData(d.criado_em, false)}${ctx.autor ? ` · ${ctx.autor}` : ""}`,
         versao: `v${d.versao}`,
@@ -100,12 +103,14 @@ function IconeDocumento() {
 
 interface ListaDocumentosProps {
   linhas: LinhaDocumento[];
-  /** No histórico cada linha leva à página do lead; dentro do lead não há para onde ir. */
+  /** No histórico cada linha leva à página do lead (documento já aberto); dentro do lead, use `aoAbrir`. */
   comLink?: boolean;
+  /** Dentro do lead: abre o documento ao lado da evidência. */
+  aoAbrir?: (documentoId: number) => void;
   vazio?: string;
 }
 
-export function ListaDocumentos({ linhas, comLink = false, vazio = "Nenhum documento gerado ainda." }: ListaDocumentosProps) {
+export function ListaDocumentos({ linhas, comLink = false, aoAbrir, vazio = "Nenhum documento gerado ainda." }: ListaDocumentosProps) {
   if (linhas.length === 0) return <p className="text-sm text-cinza">{vazio}</p>;
   return (
     <ul className="flex flex-col gap-3">
@@ -133,11 +138,19 @@ export function ListaDocumentos({ linhas, comLink = false, vazio = "Nenhum docum
           <li key={l.chave}>
             {comLink ? (
               <Link
-                href={`/jornadas/${l.jornadaId}`}
+                href={`/jornadas/${l.jornadaId}${l.documentoId ? `?documento=${l.documentoId}` : ""}`}
                 className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-1 transition hover:bg-fundo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40 sm:gap-8"
               >
                 {conteudo}
               </Link>
+            ) : aoAbrir && l.documentoId ? (
+              <button
+                type="button"
+                onClick={() => aoAbrir(l.documentoId!)}
+                className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-4 rounded-lg px-2 py-1 text-left transition hover:bg-fundo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40 sm:gap-8"
+              >
+                {conteudo}
+              </button>
             ) : (
               <div className="flex items-center gap-4 sm:gap-8">{conteudo}</div>
             )}

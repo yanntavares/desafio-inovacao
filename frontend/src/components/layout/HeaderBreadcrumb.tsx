@@ -7,7 +7,8 @@ import { iniciais, MENU_POR_PAPEL } from "@/lib/rotas";
 import { BuscaRapida } from "./BuscaRapida";
 import { Notificacoes } from "./Notificacoes";
 
-export function HeaderBreadcrumb() {
+/** `titulo`: o que a página informou por `useMigalha` (o nome do lead na página do lead). */
+export function HeaderBreadcrumb({ titulo }: { titulo: string | null }) {
   const { sessao } = useAuth();
   const caminho = usePathname();
   if (!sessao) return null;
@@ -18,9 +19,9 @@ export function HeaderBreadcrumb() {
   // Telas 05/06: as páginas internas partem do kanban ("Kanban de leads › Cadastrar reunião").
   const raiz =
     usuario.papel === "admin" ? ["Diretoria"] : atual && atual !== menu[0] && !atual.semRaiz ? [menu[0].rotulo] : [];
-  // O lead não está no menu: a trilha parte do kanban do perfil (o nome do lead é o título da página).
+  // O lead não está no menu: a trilha parte do kanban do perfil e termina no nome do cliente.
   const noLead = caminho.startsWith("/jornadas/");
-  const trilha = noLead ? [menu[0].rotulo, "Página do lead"] : [...raiz, atual?.rotulo ?? "Ponte"];
+  const trilha = noLead ? [menu[0].rotulo, titulo ?? "Página do lead"] : [...raiz, atual?.rotulo ?? "Ponte"];
 
   return (
     <header className="sticky top-0 z-10 flex h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 shadow-[0_2px_4px_rgba(15,27,45,0.06)] lg:px-8 xl:px-10">

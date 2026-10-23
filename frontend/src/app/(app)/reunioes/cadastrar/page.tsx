@@ -340,7 +340,12 @@ export default function CadastrarReuniaoPage() {
             <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
-                onClick={() => router.push(rotaInicial(usuario.papel))}
+                onClick={() => {
+                  // Data e participantes já nascem preenchidos; só pergunta se a pessoa digitou algo.
+                  const preenchido = leadId || clienteNome.trim() || tituloNegocio.trim() || tipo || arquivo || texto.trim();
+                  if (preenchido && !window.confirm("Descartar o que foi preenchido neste cadastro?")) return;
+                  router.push(rotaInicial(usuario.papel));
+                }}
                 className="h-14 rounded-lg border border-slate-300 bg-white px-16 text-lg font-bold text-tinta transition hover:border-azul/50 hover:bg-azul-suave/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-azul/30"
               >
                 Cancelar

@@ -13,11 +13,13 @@ import type {
   ReuniaoResumo,
   VisaoGeral,
 } from "@/lib/tipos";
+import { useMigalha } from "@/lib/migalha";
 import { useLeitura } from "@/lib/useLeitura";
 import { HeaderJornada } from "./HeaderJornada";
 import { linhasDocumentos, ListaDocumentos } from "./HistoricoDocumentos";
 import { LinhaTempoJornada, ListaReunioes } from "./LinhaTempoJornada";
 import { type DecisaoG3, ModalDecisaoGateG3 } from "./ModalDecisaoGateG3";
+import { PainelDocumento } from "./PainelDocumento";
 import { PainelHandoffGate } from "./PainelHandoffGate";
 import { PainelProximoPasso } from "./PainelProximoPasso";
 import { PainelValidacaoG2 } from "./PainelValidacaoG2";
@@ -46,11 +48,12 @@ function Cartao({ titulo, children }: { titulo: string; children: React.ReactNod
   );
 }
 
-export function PaginaJornada({ id }: { id: number }) {
+export function PaginaJornada({ id, documentoInicial = null }: { id: number; documentoInicial?: number | null }) {
   const { sessao } = useAuth();
   const token = sessao!.token;
   const [aba, setAba] = useState<Aba>("Visão geral");
   const [decisao, setDecisao] = useState<DecisaoG3 | null>(null);
+  const [documentoAberto, setDocumentoAberto] = useState<number | null>(documentoInicial);
 
   const carregar = useCallback(async () => {
     const [jornada, visao, auditoria, reunioes, documentos, itens, pendencias] = await Promise.all([
@@ -70,6 +73,8 @@ export function PaginaJornada({ id }: { id: number }) {
     intervaloMs: (d) =>
       d && ["TRANSCRICAO_RECEBIDA", "EXTRAINDO"].includes(d.jornada.estado) ? 5_000 : 30_000,
   });
+
+  useMigalha(dados?.jornada.cliente);
 
   if (!dados) {
     return erro ? (
@@ -92,6 +97,19 @@ export function PaginaJornada({ id }: { id: number }) {
     autor: jornada.analista.nome,
   });
   const aRevisar = itens.filter((i) => i.status_validacao === "pendente").length;
+  const abrirDocumento = (documentoId: number) => {
+    setDocumentoAberto(documentoId);
+    if (aba !== "Visão geral" && aba !== "Histórico de documentação") setAba("Histórico de documentação");
+  };
+  const painelDocumento = documentoAberto && (
+    <PainelDocumento
+      documentoId={documentoAberto}
+      jornada={jornada}
+      aoTrocar={setDocumentoAberto}
+      aoFechar={() => setDocumentoAberto(null)}
+      aoMudar={recarregar}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,6 +137,7 @@ export function PaginaJornada({ id }: { id: number }) {
         <div role="tabpanel" aria-label={aba} className="flex min-w-0 flex-col gap-6">
           {aba === "Visão geral" && (
             <>
+              {painelDocumento}
               {emValidacao ? (
                 <RevisaoG2
                   jornadaId={jornada.id}
@@ -132,14 +151,17 @@ export function PaginaJornada({ id }: { id: number }) {
                 <TabelaRequisitosG3 visao={visao} />
               )}
               <Cartao titulo="Histórico de documentação">
-                <ListaDocumentos linhas={linhasDoc} />
+                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} />
               </Cartao>
             </>
           )}
           {aba === "Histórico de documentação" && (
-            <Cartao titulo="Histórico de documentação">
-              <ListaDocumentos linhas={linhasDoc} />
-            </Cartao>
+            <>
+              {painelDocumento}
+              <Cartao titulo="Histórico de documentação">
+                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} />
+              </Cartao>
+            </>
           )}
           {aba === "Reuniões" && (
             <Cartao titulo="Reuniões">
@@ -154,7 +176,12 @@ export function PaginaJornada({ id }: { id: number }) {
         </div>
 
         <aside className="flex flex-col gap-6">
-          <PainelProximoPasso jornada={jornada} aoAgir={recarregar} />
+          <PainelProximoPasso
+            jornada={jornada}
+            documentos={documentos}
+            aoAgir={recarregar}
+            aoAbrirDocumento={abrirDocumento}
+          />
           {emValidacao ? (
             <PainelValidacaoG2 jornada={jornada} aRevisar={aRevisar} aoValidar={recarregar} />
           ) : (

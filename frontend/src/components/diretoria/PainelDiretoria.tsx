@@ -10,6 +10,7 @@ import { CartoesMetricas } from "./CartoesMetricas";
 import { GraficoFunil } from "./GraficoFunil";
 import { ListaProjetos } from "./ListaProjetos";
 import { MatrizPermissoes } from "./MatrizPermissoes";
+import { RecarregarDemo } from "./RecarregarDemo";
 import { TabelaUsuarios } from "./TabelaUsuarios";
 
 const PERIODOS = [
@@ -59,9 +60,12 @@ export function PainelDiretoria() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold text-azul-escuro lg:text-4xl">Visão geral do funil</h1>
-        <p className="mt-2 text-[17px] text-cinza">Acompanhe projetos e negócios, gerencie usuários e defina permissões.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-azul-escuro lg:text-4xl">Visão geral do funil</h1>
+          <p className="mt-2 text-[17px] text-cinza">Acompanhe projetos e negócios, gerencie usuários e defina permissões.</p>
+        </div>
+        <RecarregarDemo />
       </div>
 
       <div className="flex flex-wrap gap-3">

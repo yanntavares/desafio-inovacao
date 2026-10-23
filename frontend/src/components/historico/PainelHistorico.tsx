@@ -28,25 +28,19 @@ const PERIODOS = [
 
 const SEM_FILTRO = { analista_id: null, negocio_id: null, so_bloqueantes: false };
 
-/** Leads visíveis (ativos + concluídos); a API já restringe o analista aos dele. */
-async function carregar(token: string, visao: Visao, papel: string): Promise<Dados> {
-  const [ativos, concluidos, recebidos, usuarios] = await Promise.all([
+/** Leads visíveis (ativos + concluídos) e o histórico de todos numa chamada; a API restringe por papel. */
+async function carregar(token: string, visao: Visao): Promise<Dados> {
+  const [ativos, concluidos, historico, usuarios] = await Promise.all([
     apiKanban.listar(token, SEM_FILTRO),
     apiKanban.concluidas(token),
-    // O gerente vê só os leads cujo handoff foi enviado a ele.
-    papel === "gerente" ? apiJornadas.handoffsRecebidos(token) : Promise.resolve(null),
+    apiJornadas.historico(token),
     visao === "enviadas" ? apiReunioes.usuarios(token) : Promise.resolve([]),
   ]);
-  let leads = [...ativos.colunas, ...concluidos.colunas].flatMap((c) => c.cards);
-  if (recebidos) {
-    const ids = new Set(recebidos.map((h) => h.jornada_id));
-    leads = leads.filter((l) => ids.has(l.id));
-  }
-  // Sem endpoint agregado: um GET de documentos por lead (decisão do MVP; ver plano do front).
-  const historicos = await Promise.all(leads.map((l) => apiJornadas.documentos(token, l.id)));
+  // Só os leads que o histórico devolve (o gerente vê os que recebeu, não a carteira toda).
+  const leads = [...ativos.colunas, ...concluidos.colunas].flatMap((c) => c.cards).filter((l) => historico[l.id]);
   return {
     leads,
-    documentos: new Map(leads.map((l, i) => [l.id, historicos[i]])),
+    documentos: new Map(leads.map((l) => [l.id, historico[l.id]])),
     gerentes: usuarios.filter((u) => u.papel === "gerente"),
     agora: Date.now(),
   };
@@ -63,7 +57,7 @@ export function PainelHistorico({ visao }: { visao: Visao }) {
 
   useEffect(() => {
     let ativo = true;
-    carregar(token, visao, usuario.papel)
+    carregar(token, visao)
       .then((d) => ativo && setDados(d))
       .catch(
         (e: unknown) =>
@@ -72,7 +66,7 @@ export function PainelHistorico({ visao }: { visao: Visao }) {
     return () => {
       ativo = false;
     };
-  }, [token, visao, usuario.papel]);
+  }, [token, visao]);
 
   const enviadas = visao === "enviadas";
 

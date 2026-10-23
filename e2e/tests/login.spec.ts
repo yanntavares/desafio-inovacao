@@ -54,8 +54,7 @@ test("sair encerra a sessão", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
 });
 
-// Lacuna conhecida (plano do front, perfil técnico): o seletor de perfil do menu ainda não lista o técnico.
-test.fixme("o técnico aparece selecionado no seletor de perfil da demonstração", async ({ page }) => {
+test("o técnico aparece selecionado no seletor de perfil da demonstração", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: /Equipe técnica/ }).click();
   await expect(page.getByLabel("Trocar perfil de demonstração")).toHaveValue("tecnico");

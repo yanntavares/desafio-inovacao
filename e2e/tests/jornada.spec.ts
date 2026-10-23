@@ -10,6 +10,7 @@ test.describe("página do lead: gate G3 (aceite do handoff)", () => {
     await entrarComo(page, "rafael.lima"); // designado no seed
     await page.goto(`/jornadas/${id}`);
     await expect(page.getByRole("heading", { name: "Clínica Vitalis", level: 1 })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Trilha" })).toHaveText("Kanban geral›Clínica Vitalis");
     await expect(page.getByRole("button", { name: "Aceitar handoff" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Devolver ao analista" })).toBeEnabled();
     await expect(page.getByText("Snapshot imutável · só nova versão altera")).toBeVisible();

@@ -33,5 +33,7 @@ migrate:
 revision:
 	docker compose exec api alembic revision --autogenerate -m "$(m)"
 
+# baixa o Chromium na revisão desta versão do Playwright (não faz nada se já houver); com
+# E2E_NAVEGADOR=chrome|msedge usa o navegador instalado e pula o download
 e2e: ## testes do front no navegador (Playwright); a stack precisa estar no ar (make up)
-	cd e2e && npm install --no-audit --no-fund && npx playwright test
+	cd e2e && npm install --no-audit --no-fund && { [ -n "$$E2E_NAVEGADOR" ] || npx playwright install chromium; } && npx playwright test

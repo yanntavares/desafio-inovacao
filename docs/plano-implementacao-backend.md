@@ -68,6 +68,13 @@ Decidido: o gerente também cadastra reunião (escolhe o analista responsável).
 
 Usuário técnico (`paulo.nunes`, somente leitura) e lead concluído (Ateliê Vento Sul: Marina + Rafael, com pauta aprovada) para o Histórico e o perfil técnico terem dados; o técnico entra em `GET /auth/demo`. Testes novos em `tests/api/test_telas.py` (carteira do histórico, técnico só lê com 403 em validar/concluir/gerar documento/cadastrar reunião). Suíte rodada no container: 56 passed + 1 skipped no SQLite, 57 passed no PostgreSQL (`handoff_teste`). `make test` não roda aqui (sem `uv`): pytest e httpx foram instalados em `/tmp/dev` do container da API e a suíte roda com `PYTHONPATH=/tmp/dev python -m pytest`.
 
+### Ajustes pedidos pelo front (23/10)
+
+- **Vínculos parágrafo → item na edição** (`documentos._remapear_vinculos`): o vínculo guarda o índice da linha; ao editar (rascunho ou nova versão de aprovado) cada linha de texto idêntico herda os `item_ids`, linha nova ou alterada fica sem evidência. Teste: `test_editar_documento_mantem_o_vinculo_com_a_linha_certa` (`tests/api/test_invariantes.py`).
+- **Diretoria não muda o próprio perfil** (`usuarios.atualizar`): 403 "Peça a outra conta da Diretoria para mudar o seu perfil." (a sessão perderia as telas da Diretoria no meio do uso). Teste: `test_diretoria_nao_muda_o_proprio_perfil` (`tests/api/test_telas.py`).
+- **`GET /historico`** (`jornadas.historico`): histórico de documentação de todos os leads visíveis numa consulta por tabela (documentos e pacotes com `jornada_id IN`), para as telas 07/07b não fazerem uma chamada por lead. Visibilidade de `_consulta_visivel`; o gerente vê só os leads cujo pacote recebeu. Teste: `test_historico_agregado_respeita_a_carteira` (analista, outro analista, gerente, técnico, 401). O resumo de cada pacote ainda conta as bloqueantes por lead (uma consulta por pacote dentro da mesma requisição); aceitável no volume atual.
+- Suíte em SQLite: 59 passed, 1 skipped. No PostgreSQL (`make test-pg`, 23/10): 60 passed.
+
 ### Fase 4 — Segurança e operação
 
 **Feita em 21/10.** API recusa subir fora do demo com segredo de exemplo ou curto (`Settings.validar_producao` no lifespan); login bloqueia 15 min após 5 senhas erradas (falhas na auditoria como `login_falhou`); `POST /auth/renovar`; job `segredos` (gitleaks) no CI; README com endpoints, roteiro da demonstração e segurança. Testes em `tests/api/test_seguranca.py`.
@@ -92,6 +99,4 @@ Reprocessar com diff (RF-07), pendências geradas por IA (RF-09), comentários p
 
 ## 4. Riscos
 
-- **PostgreSQL nunca exercitado:** é a Fase 0 por isso. Qualquer outra entrega é construída sobre uma base não provada.
-- **Mock enganoso:** o mock devolve sempre evidência literal; o comportamento com IA real (trechos parafraseados, JSON inválido) só aparece na Fase 2.
-- **Escopo congelado hoje:** itens da Fase 3 e 5 não previstos nos requisitos originais precisam de decisão explícita antes de entrar.
+- **IA real não exercitada:** toda a suíte e a demonstração rodam com `LLM_PROVIDER=mock`, que sempre devolve evidência literal. O `AnthropicProvider` existe, mas falta o teste comparativo nas 3 transcrições fictícias (trechos parafraseados, JSON inválido, reparos, custo e latência). A redação de documentos roda dentro da requisição; se a latência real passar de alguns segundos, vira job (Fase 2, item 4).

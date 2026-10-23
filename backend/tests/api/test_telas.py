@@ -131,3 +131,36 @@ def test_tecnico_do_seed_so_le(client, entrar):
     assert client.post(f"/jornadas/{lead}/documentos", headers=tecnico,
                        json={"tipo": "briefing_projeto"}).status_code == 403
     assert client.post("/reunioes/pre-visualizar", headers=tecnico, data={"texto": "Ana: oi"}).status_code == 403
+
+
+def test_diretoria_nao_muda_o_proprio_perfil(client, db, entrar):
+    h = entrar("diretoria")
+    eu = client.get("/auth/me", headers=h).json()
+    # com uma segunda Diretoria, a regra da última conta não se aplica; o que barra é a própria conta
+    outra = client.get("/auth/me", headers=entrar("camila.reis")).json()
+    assert client.patch(f"/usuarios/{outra['id']}", headers=h, json={"papel": "admin"}).status_code == 200
+    r = client.patch(f"/usuarios/{eu['id']}", headers=h, json={"papel": "gerente"})
+    assert r.status_code == 403 and "outra conta da Diretoria" in r.json()["detail"]
+    assert client.get("/auth/me", headers=h).json()["papel"] == "admin"
+
+
+def _clientes_do_historico(client, headers):
+    corpo = client.get("/historico", headers=headers).json()
+    ids = {int(i) for i in corpo}
+    cards = [c for concl in ("false", "true")
+             for col in client.get("/kanban", params={"concluidas": concl}, headers=headers).json()["colunas"]
+             for c in col["cards"]]
+    return {c["cliente"] for c in cards if c["id"] in ids}, corpo
+
+
+def test_historico_agregado_respeita_a_carteira(client, entrar):
+    marina, corpo = _clientes_do_historico(client, entrar("marina.costa"))
+    assert "Ateliê Vento Sul" in marina and "Escola Aurora" not in marina  # Escola Aurora é do Lucas
+    concluido = next(v for v in corpo.values() if any(d["tipo"] == "pauta_kickoff" for d in v["documentos"]))
+    assert concluido["pacotes"] and concluido["apos_o_aceite"] == []
+    # o gerente vê só os leads cujo pacote recebeu, não a carteira inteira
+    assert _clientes_do_historico(client, entrar("rafael.lima"))[0] == {"Clínica Vitalis", "Ateliê Vento Sul"}
+    lucas = _clientes_do_historico(client, entrar("lucas.prado"))[0]
+    assert "Escola Aurora" in lucas and "Ateliê Vento Sul" not in lucas
+    assert "Escola Aurora" in _clientes_do_historico(client, entrar("paulo.nunes"))[0]  # técnico vê todos
+    assert client.get("/historico").status_code == 401

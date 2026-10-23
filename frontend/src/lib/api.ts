@@ -6,9 +6,10 @@ import type {
   PainelFunil,
   UsuarioPatch,
   DetalheJornada,
+  DocumentoCompleto,
   EstadoJornada,
+  TipoDocumento,
   Evidencia,
-  HandoffRecebido,
   HistoricoDocumentacao,
   ItemRevisao,
   Pendencia,
@@ -138,6 +139,8 @@ export const apiJornadas = {
   reunioes: (token: string, id: number) => requisitar<ReuniaoResumo[]>(`/jornadas/${id}/reunioes`, { token }),
   documentos: (token: string, id: number) =>
     requisitar<HistoricoDocumentacao>(`/jornadas/${id}/documentos`, { token }),
+  /** Telas 07/07b: histórico de todos os leads visíveis numa chamada (o gerente vê só os que recebeu). */
+  historico: (token: string) => requisitar<Record<string, HistoricoDocumentacao>>("/historico", { token }),
   evidencia: (token: string, itemId: number) => requisitar<Evidencia>(`/itens/${itemId}/evidencia`, { token }),
   /** A extração falhou: reenfileira sem perder a transcrição nem duplicar itens. */
   tentarExtracaoDeNovo: (token: string, id: number) =>
@@ -156,8 +159,6 @@ export const apiJornadas = {
     requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/validar`, { metodo: "POST", token }),
   /** Transcrição completa de uma reunião (a evidência aponta o trecho dentro dela). */
   reuniao: (token: string, reuniaoId: number) => requisitar<ReuniaoCompleta>(`/reunioes/${reuniaoId}`, { token }),
-  /** Exige o papel de gerente (403 para os demais). */
-  handoffsRecebidos: (token: string) => requisitar<HandoffRecebido[]>("/handoffs", { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */
@@ -173,6 +174,20 @@ export const apiJornadas = {
       corpo: { comentario },
       token,
     }),
+  /** Comerciais: analista responsável (em validação ou validada). Briefing/pauta: gerente designado, após o aceite. */
+  gerarDocumento: (token: string, id: number, tipo: TipoDocumento) =>
+    requisitar<DocumentoCompleto>(`/jornadas/${id}/documentos`, { metodo: "POST", corpo: { tipo }, token }),
+  documento: (token: string, documentoId: number) =>
+    requisitar<DocumentoCompleto>(`/documentos/${documentoId}`, { token }),
+  /** Aprovado é imutável: editar devolve uma nova versão (outro id). */
+  editarDocumento: (token: string, documentoId: number, conteudo_md: string) =>
+    requisitar<DocumentoCompleto>(`/documentos/${documentoId}`, { metodo: "PUT", corpo: { conteudo_md }, token }),
+  /** Aprovar o briefing de projeto é o G4. A API recusa número que não está nos itens validados. */
+  aprovarDocumento: (token: string, documentoId: number) =>
+    requisitar<DocumentoCompleto>(`/documentos/${documentoId}/aprovar`, { metodo: "POST", token }),
+  /** Só o gerente designado, com a pauta de kickoff aprovada. */
+  concluir: (token: string, id: number) =>
+    requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/concluir`, { metodo: "POST", token }),
 };
 
 export const apiDiretoria = {
@@ -189,6 +204,8 @@ export const apiDiretoria = {
   /** A API recusa, por exemplo, desativar ou rebaixar a última conta da Diretoria. */
   atualizarUsuario: (token: string, id: number, dados: UsuarioPatch) =>
     requisitar<Usuario>(`/usuarios/${id}`, { metodo: "PATCH", corpo: dados, token }),
+  /** Apaga e recria a demonstração (só com DEMO_MODE ligado). */
+  recarregarDemo: (token: string) => requisitar<unknown>("/demo/recarregar", { metodo: "POST", token }),
 };
 
 export const apiBusca = {

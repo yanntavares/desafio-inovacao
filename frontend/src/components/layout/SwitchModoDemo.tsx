@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { rotaInicial, ROTULO_PAPEL } from "@/lib/rotas";
 import type { Papel } from "@/lib/tipos";
 
-const PAPEIS_DEMO: Papel[] = ["comercial", "gerente", "admin"];
+const PAPEIS_DEMO: Papel[] = ["comercial", "gerente", "tecnico", "admin"];
 
 /** Rodapé da sidebar: em sessão de demonstração troca o papel na hora; fora dela só mostra o perfil. */
 export function SwitchModoDemo() {

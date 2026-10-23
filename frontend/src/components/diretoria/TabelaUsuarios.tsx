@@ -36,6 +36,9 @@ function ChipStatus({ status }: { status: string }) {
   );
 }
 
+// Mesmo texto da recusa da API (usuarios.atualizar): a própria sessão perderia o acesso à Diretoria.
+const MOTIVO_PROPRIO_PERFIL = "Peça a outra conta da Diretoria para mudar o seu perfil.";
+
 export function TabelaUsuarios({ completa = false }: TabelaUsuariosProps) {
   const { sessao } = useAuth();
   const token = sessao!.token;
@@ -45,6 +48,8 @@ export function TabelaUsuarios({ completa = false }: TabelaUsuariosProps) {
   // Erro da API fica na linha que o causou (ex.: "A Diretoria precisa de ao menos uma conta ativa.").
   const [erroLinha, setErroLinha] = useState<{ id: number; mensagem: string } | null>(null);
   const [convidando, setConvidando] = useState(false);
+  // O back não envia e-mail: quem convida repassa o link; a conta se completa no cadastro com o mesmo e-mail.
+  const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -87,6 +92,14 @@ export function TabelaUsuarios({ completa = false }: TabelaUsuariosProps) {
         </button>
       </div>
 
+      {aviso && (
+        <div role="status" className="mx-6 mb-6 flex items-start justify-between gap-3 rounded-lg bg-lima-suave px-4 py-3 text-[15px] text-azul-escuro lg:mx-8">
+          <p>{aviso}</p>
+          <button type="button" onClick={() => setAviso(null)} className="shrink-0 text-sm font-bold hover:underline">
+            Fechar
+          </button>
+        </div>
+      )}
       {erro && (
         <div className="px-6 pb-6 lg:px-8">
           <AlertaErro mensagem={erro} />
@@ -126,9 +139,10 @@ export function TabelaUsuarios({ completa = false }: TabelaUsuariosProps) {
                         <select
                           aria-label={`Perfil de ${u.nome}`}
                           value={u.papel}
-                          disabled={salvando === u.id}
+                          disabled={salvando === u.id || u.id === sessao!.usuario.id}
+                          title={u.id === sessao!.usuario.id ? MOTIVO_PROPRIO_PERFIL : undefined}
                           onChange={(e) => atualizar(u.id, { papel: e.target.value as Papel })}
-                          className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-9 text-[15px] text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-wait disabled:opacity-60"
+                          className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-9 text-[15px] text-tinta outline-none transition focus:border-azul focus:ring-2 focus:ring-azul/30 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {PAPEIS.map((p) => (
                             <option key={p} value={p}>
@@ -183,6 +197,10 @@ export function TabelaUsuarios({ completa = false }: TabelaUsuariosProps) {
           aoConvidar={(novo) => {
             setUsuarios((us) => (us ? [...us, novo] : [novo]));
             setConvidando(false);
+            setAviso(
+              `Convite criado. O sistema não envia e-mail: mande a ${novo.nome} o link ${window.location.origin}/cadastro. ` +
+                `Ao se cadastrar com ${novo.email}, a pessoa define a senha e entra como ${novo.perfil}.`,
+            );
           }}
         />
       )}
