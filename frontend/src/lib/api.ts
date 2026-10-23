@@ -15,6 +15,7 @@ import type {
   Pendencia,
   ResolucaoPendencia,
   RevisaoItemEntrada,
+  PacoteCompleto,
   PacoteHandoff,
   RegistroAuditoria,
   ReuniaoResumo,
@@ -161,6 +162,8 @@ export const apiJornadas = {
   reuniao: (token: string, reuniaoId: number) => requisitar<ReuniaoCompleta>(`/reunioes/${reuniaoId}`, { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
+  /** Snapshot imutável de uma versão do pacote, com as 16 seções. */
+  pacote: (token: string, pacoteId: number) => requisitar<PacoteCompleto>(`/pacotes/${pacoteId}`, { token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */
   aceitarHandoff: (token: string, id: number, versao: number) =>
     requisitar<{ estado: EstadoJornada; versao: number }>(`/jornadas/${id}/handoff/aceitar`, {

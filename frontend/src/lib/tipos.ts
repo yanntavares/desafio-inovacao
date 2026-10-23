@@ -172,6 +172,11 @@ export interface PacoteHandoff {
   resumo: ResumoPacote;
 }
 
+/** `GET /pacotes/{id}`: o snapshot com as 16 seções, no mesmo formato da visão geral. */
+export interface PacoteCompleto extends PacoteHandoff {
+  secoes: Record<string, SecaoVisaoGeral>;
+}
+
 export interface DetalheJornada {
   id: number;
   cliente: string;

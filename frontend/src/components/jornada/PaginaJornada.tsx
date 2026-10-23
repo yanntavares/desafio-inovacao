@@ -20,6 +20,7 @@ import { linhasDocumentos, ListaDocumentos } from "./HistoricoDocumentos";
 import { LinhaTempoJornada, ListaReunioes } from "./LinhaTempoJornada";
 import { type DecisaoG3, ModalDecisaoGateG3 } from "./ModalDecisaoGateG3";
 import { PainelDocumento } from "./PainelDocumento";
+import { PainelPacote } from "./PainelPacote";
 import { PainelHandoffGate } from "./PainelHandoffGate";
 import { PainelProximoPasso } from "./PainelProximoPasso";
 import { PainelValidacaoG2 } from "./PainelValidacaoG2";
@@ -54,6 +55,7 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
   const [aba, setAba] = useState<Aba>("Visão geral");
   const [decisao, setDecisao] = useState<DecisaoG3 | null>(null);
   const [documentoAberto, setDocumentoAberto] = useState<number | null>(documentoInicial);
+  const [pacoteAberto, setPacoteAberto] = useState<number | null>(null);
 
   const carregar = useCallback(async () => {
     const [jornada, visao, auditoria, reunioes, documentos, itens, pendencias] = await Promise.all([
@@ -97,11 +99,21 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
     autor: jornada.analista.nome,
   });
   const aRevisar = itens.filter((i) => i.status_validacao === "pendente").length;
-  const abrirDocumento = (documentoId: number) => {
-    setDocumentoAberto(documentoId);
+  const mostrarAbaDeDocumento = () => {
     if (aba !== "Visão geral" && aba !== "Histórico de documentação") setAba("Histórico de documentação");
   };
-  const painelDocumento = documentoAberto && (
+  // Um visualizador por vez: abrir o pacote fecha o documento e vice-versa.
+  const abrirDocumento = (documentoId: number) => {
+    setPacoteAberto(null);
+    setDocumentoAberto(documentoId);
+    mostrarAbaDeDocumento();
+  };
+  const abrirPacote = (pacoteId: number) => {
+    setDocumentoAberto(null);
+    setPacoteAberto(pacoteId);
+    mostrarAbaDeDocumento();
+  };
+  const painelDocumento = documentoAberto ? (
     <PainelDocumento
       documentoId={documentoAberto}
       jornada={jornada}
@@ -109,6 +121,8 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
       aoFechar={() => setDocumentoAberto(null)}
       aoMudar={recarregar}
     />
+  ) : (
+    pacoteAberto && <PainelPacote pacoteId={pacoteAberto} aoFechar={() => setPacoteAberto(null)} />
   );
 
   return (
@@ -151,7 +165,7 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
                 <TabelaRequisitosG3 visao={visao} />
               )}
               <Cartao titulo="Histórico de documentação">
-                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} />
+                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} aoAbrirPacote={abrirPacote} />
               </Cartao>
             </>
           )}
@@ -159,7 +173,7 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
             <>
               {painelDocumento}
               <Cartao titulo="Histórico de documentação">
-                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} />
+                <ListaDocumentos linhas={linhasDoc} aoAbrir={abrirDocumento} aoAbrirPacote={abrirPacote} />
               </Cartao>
             </>
           )}
@@ -185,7 +199,14 @@ export function PaginaJornada({ id, documentoInicial = null }: { id: number; doc
           {emValidacao ? (
             <PainelValidacaoG2 jornada={jornada} aRevisar={aRevisar} aoValidar={recarregar} />
           ) : (
-            <PainelHandoffGate jornada={jornada} aoDecidir={setDecisao} aoEnviar={recarregar} />
+            <PainelHandoffGate
+              jornada={jornada}
+              aoDecidir={setDecisao}
+              aoEnviar={recarregar}
+              documentos={documentos}
+              aoAbrirPacote={abrirPacote}
+              aoAbrirDocumento={abrirDocumento}
+            />
           )}
           <Cartao titulo="Linha do tempo">
             <LinhaTempoJornada registros={auditoria} limite={5} />

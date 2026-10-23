@@ -32,14 +32,25 @@ function LinhaItem({ item, natureza }: { item: ItemSecao; natureza: NaturezaItem
 const ORDEM: NaturezaItem[] = ["acordado", "em_discussao", "sugestao_ia"];
 
 /** Visão geral do pacote: as 16 seções com a natureza decidida por pessoa e a evidência a um clique. */
-export function TabelaRequisitosG3({ visao }: { visao: VisaoGeral }) {
+export function TabelaRequisitosG3({
+  visao,
+  titulo = "Visão geral do projeto",
+  embutido = false,
+}: {
+  visao: VisaoGeral;
+  titulo?: string;
+  /** Dentro de outro cartão (ex.: prévia do pacote): sem moldura nem título próprio. */
+  embutido?: boolean;
+}) {
   const secoes = Object.entries(visao.secoes);
   const comItens = secoes.filter(([, s]) => ORDEM.some((n) => s[n].length > 0));
   const vazias = secoes.filter(([, s]) => ORDEM.every((n) => s[n].length === 0));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_2px_4px_rgba(15,27,45,0.06)] lg:p-8">
-      <h2 className="text-2xl font-bold text-azul-escuro">Visão geral do projeto</h2>
+    <section
+      className={embutido ? "" : "rounded-xl border border-slate-200 bg-white p-6 shadow-[0_2px_4px_rgba(15,27,45,0.06)] lg:p-8"}
+    >
+      {!embutido && <h2 className="text-2xl font-bold text-azul-escuro">{titulo}</h2>}
       <p className="mt-1 text-sm text-cinza">Clique em um item para ver o trecho da transcrição.</p>
 
       {comItens.length === 0 && (

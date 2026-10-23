@@ -5,7 +5,7 @@ import { AlertaErro } from "@/components/formulario/AlertaErro";
 import { IconeCadeado } from "@/components/icones";
 import { apiJornadas, apiReunioes, ErroApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthContext";
-import type { DetalheJornada, EstadoJornada, UsuarioOpcao } from "@/lib/tipos";
+import type { DetalheJornada, EstadoJornada, HistoricoDocumentacao, UsuarioOpcao } from "@/lib/tipos";
 import type { DecisaoG3 } from "./ModalDecisaoGateG3";
 
 const DEPOIS_DO_ACEITE: EstadoJornada[] = ["ACEITO", "BRIEFING_APROVADO", "CONCLUIDA"];
@@ -14,6 +14,11 @@ interface PainelHandoffGateProps {
   jornada: DetalheJornada;
   aoDecidir: (decisao: DecisaoG3) => void;
   aoEnviar: () => void;
+  documentos: HistoricoDocumentacao;
+  /** Abre a prévia das 16 seções da versão enviada. */
+  aoAbrirPacote: (pacoteId: number) => void;
+  /** Abre o resumo gerencial (documento da IA que apoia a decisão do G3). */
+  aoAbrirDocumento: (documentoId: number) => void;
 }
 
 /** Analista responsável, com a jornada validada (G2): gera o snapshot e envia ao gerente. */
@@ -80,7 +85,7 @@ function EnvioHandoff({ jornada, aoEnviar }: { jornada: DetalheJornada; aoEnviar
   );
 }
 
-export function PainelHandoffGate({ jornada, aoDecidir, aoEnviar }: PainelHandoffGateProps) {
+export function PainelHandoffGate({ jornada, aoDecidir, aoEnviar, documentos, aoAbrirPacote, aoAbrirDocumento }: PainelHandoffGateProps) {
   const { sessao } = useAuth();
   const { usuario } = sessao!;
   const pacote = jornada.handoff;
@@ -92,6 +97,9 @@ export function PainelHandoffGate({ jornada, aoDecidir, aoEnviar }: PainelHandof
   const podeEnviar =
     jornada.estado === "VALIDADA" && usuario.papel === "comercial" && usuario.id === jornada.analista.id;
 
+  const resumoGerencial = documentos.documentos
+    .filter((d) => d.tipo === "resumo_gerencial")
+    .sort((a, b) => b.versao - a.versao)[0];
   const r = pacote?.resumo;
   const percentual = r ? Math.round((100 * r.secoes_preenchidas) / r.secoes_total) : 0;
 
@@ -145,6 +153,29 @@ export function PainelHandoffGate({ jornada, aoDecidir, aoEnviar }: PainelHandof
             </p>
           )}
         </>
+      )}
+
+      {pacote && (
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => aoAbrirPacote(pacote.id)}
+            className="h-12 rounded-lg bg-azul-suave px-4 font-bold text-azul transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40"
+          >
+            Ver pacote v{pacote.versao}
+          </button>
+          <button
+            type="button"
+            disabled={!resumoGerencial}
+            onClick={() => resumoGerencial && aoAbrirDocumento(resumoGerencial.id)}
+            className="h-12 rounded-lg bg-azul-suave px-4 font-bold text-azul transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Ver resumo gerencial{resumoGerencial ? ` v${resumoGerencial.versao}` : ""}
+          </button>
+          {!resumoGerencial && (
+            <p className="text-sm text-cinza">O gerente designado ainda não gerou o resumo gerencial deste pacote.</p>
+          )}
+        </div>
       )}
 
       {usuario.papel === "admin" && (

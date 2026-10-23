@@ -23,8 +23,9 @@ const COR_SELO: Record<Tom, { fundo: string; ponto: string }> = {
 export interface LinhaDocumento {
   chave: string;
   jornadaId: number;
-  /** Só documentos abrem dentro do lead (pacotes e "após o aceite" não). */
+  /** Documentos e pacotes abrem dentro do lead ("após o aceite" não: ainda não existe). */
   documentoId?: number;
+  pacoteId?: number;
   titulo: string;
   sub: string;
   versao: string;
@@ -63,6 +64,7 @@ export function linhasDocumentos(historico: HistoricoDocumentacao, ctx: Contexto
       (p): LinhaDocumento => ({
         chave: `${ctx.jornadaId}-p${p.id}`,
         jornadaId: ctx.jornadaId,
+        pacoteId: p.id,
         titulo: "Pacote de handoff",
         sub: `${prefixo}${p.enviado_em ? formatarData(p.enviado_em, false) : "—"} · snapshot ${p.hash.slice(0, 4)}…`,
         versao: `v${p.versao}`,
@@ -107,10 +109,12 @@ interface ListaDocumentosProps {
   comLink?: boolean;
   /** Dentro do lead: abre o documento ao lado da evidência. */
   aoAbrir?: (documentoId: number) => void;
+  /** Dentro do lead: abre a prévia das 16 seções do pacote. */
+  aoAbrirPacote?: (pacoteId: number) => void;
   vazio?: string;
 }
 
-export function ListaDocumentos({ linhas, comLink = false, aoAbrir, vazio = "Nenhum documento gerado ainda." }: ListaDocumentosProps) {
+export function ListaDocumentos({ linhas, comLink = false, aoAbrir, aoAbrirPacote, vazio = "Nenhum documento gerado ainda." }: ListaDocumentosProps) {
   if (linhas.length === 0) return <p className="text-sm text-cinza">{vazio}</p>;
   return (
     <ul className="flex flex-col gap-3">
@@ -143,10 +147,10 @@ export function ListaDocumentos({ linhas, comLink = false, aoAbrir, vazio = "Nen
               >
                 {conteudo}
               </Link>
-            ) : aoAbrir && l.documentoId ? (
+            ) : (aoAbrir && l.documentoId) || (aoAbrirPacote && l.pacoteId) ? (
               <button
                 type="button"
-                onClick={() => aoAbrir(l.documentoId!)}
+                onClick={() => (l.documentoId ? aoAbrir!(l.documentoId) : aoAbrirPacote!(l.pacoteId!))}
                 className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-4 rounded-lg px-2 py-1 text-left transition hover:bg-fundo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul/40 sm:gap-8"
               >
                 {conteudo}
