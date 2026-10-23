@@ -12,7 +12,8 @@ from app.core.config import get_settings
 from app.models.base import agora
 from app.services.erros import ErroNegocio
 
-_N, _R, _P = 2**14, 8, 1
+# mínimo da OWASP com 16 MB por hash; N=2**17 (128 MB) custaria memória demais por login simultâneo
+_N, _R, _P = 2**14, 8, 5
 
 
 def validar_forca_senha(senha: str) -> None:

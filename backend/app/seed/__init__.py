@@ -82,8 +82,9 @@ def limpar(db: Session) -> None:
 
 def _criar_usuarios(db: Session) -> dict[str, Usuario]:
     por_chave = {}
+    senha_hash = seguranca.hash_senha(SENHA_DEMO)  # senha pública da demo: um hash só poupa ~0,4 s por usuário
     for nome, chave, papel in USUARIOS:
-        u = Usuario(nome=nome, email=f"{chave}@{DOMINIO}", papel=papel, senha_hash=seguranca.hash_senha(SENHA_DEMO))
+        u = Usuario(nome=nome, email=f"{chave}@{DOMINIO}", papel=papel, senha_hash=senha_hash)
         db.add(u)
         por_chave[chave] = u
     db.add(Usuario(nome="Nova pessoa", email=f"nova.pessoa@{DOMINIO}", papel=Papel.COMERCIAL))  # convidada
