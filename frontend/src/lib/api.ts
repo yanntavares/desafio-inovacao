@@ -14,7 +14,11 @@ import type {
   ReuniaoResumo,
   VisaoGeral,
   FiltrosKanban,
+  ItemRevisao,
   LeadEncontrado,
+  NovoItemEntrada,
+  ReuniaoCompleta,
+  RevisaoItemEntrada,
   LoginEntrada,
   Notificacao,
   OpcoesReuniao,
@@ -134,6 +138,14 @@ export const apiJornadas = {
   /** A extração falhou: reenfileira sem perder a transcrição nem duplicar itens. */
   tentarExtracaoDeNovo: (token: string, id: number) =>
     requisitar<{ estado: EstadoJornada }>(`/jornadas/${id}/extracao/tentar-novamente`, { metodo: "POST", token }),
+  itens: (token: string, id: number) => requisitar<ItemRevisao[]>(`/jornadas/${id}/itens`, { token }),
+  /** Só o analista responsável, com a jornada em validação (G2); a API recusa o resto. */
+  adicionarItem: (token: string, id: number, dados: NovoItemEntrada) =>
+    requisitar<ItemRevisao>(`/jornadas/${id}/itens`, { metodo: "POST", corpo: dados, token }),
+  revisarItem: (token: string, itemId: number, dados: RevisaoItemEntrada) =>
+    requisitar<ItemRevisao>(`/itens/${itemId}`, { metodo: "PATCH", corpo: dados, token }),
+  /** Transcrição completa de uma reunião (a evidência aponta o trecho dentro dela). */
+  reuniao: (token: string, reuniaoId: number) => requisitar<ReuniaoCompleta>(`/reunioes/${reuniaoId}`, { token }),
   enviarHandoff: (token: string, id: number, gerente_id: number) =>
     requisitar<PacoteHandoff>(`/jornadas/${id}/handoff`, { metodo: "POST", corpo: { gerente_id }, token }),
   /** G3: o aceite cita a versão vista; a API recusa se já houver outra mais nova. */

@@ -49,3 +49,18 @@ export async function contarItens(jornadaId: number, comoChave = "rafael.lima"):
   const itens = await chamar<unknown[]>(`/jornadas/${jornadaId}/itens`, { headers: { Authorization: `Bearer ${sessao.token}` } });
   return itens.length;
 }
+
+export interface ItemApi {
+  id: number;
+  descricao: string;
+  categoria: string;
+  status_validacao: string;
+  natureza_final: string | null;
+  origem: string;
+}
+
+/** Itens do lead como a API os devolve (para conferir o efeito de uma ação feita na tela). */
+export async function itensDoLead(jornadaId: number, comoChave = "rafael.lima"): Promise<ItemApi[]> {
+  const sessao = await entrarNaApi(comoChave);
+  return chamar<ItemApi[]>(`/jornadas/${jornadaId}/itens`, { headers: { Authorization: `Bearer ${sessao.token}` } });
+}

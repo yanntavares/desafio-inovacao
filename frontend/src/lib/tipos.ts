@@ -216,8 +216,84 @@ export interface VisaoGeral {
 export interface Evidencia {
   item_id: number;
   origem: OrigemItem;
-  evidencias: { segmento_ordem: number; trecho?: string; falante: string; texto: string }[];
+  evidencias: {
+    segmento_ordem: number;
+    trecho?: string;
+    /** Posição do trecho dentro de `texto_mascarado` (só o texto mascarado tem offsets válidos). */
+    inicio?: number;
+    fim?: number;
+    reuniao_id?: number;
+    falante: string;
+    texto: string;
+    texto_mascarado?: string;
+  }[];
   aviso: string | null;
+}
+
+export type CategoriaItem =
+  | "problema"
+  | "objetivo"
+  | "publico"
+  | "escopo"
+  | "entregavel"
+  | "requisito_nao_funcional"
+  | "integracao"
+  | "restricao"
+  | "premissa"
+  | "risco"
+  | "orcamento"
+  | "prazo"
+  | "marco"
+  | "stakeholder"
+  | "criterio_aceite"
+  | "duvida";
+
+export type StatusValidacao = "pendente" | "confirmado" | "editado" | "rejeitado";
+
+/** Item da ficha como a revisão (G2) o vê: com status de validação, natureza proposta e final. */
+export interface ItemRevisao {
+  id: number;
+  categoria: CategoriaItem;
+  descricao: string;
+  natureza_proposta: NaturezaItem | null;
+  natureza_final: NaturezaItem | null;
+  origem: OrigemItem;
+  situacao: "informado" | "nao_informado";
+  status_validacao: StatusValidacao;
+  evidencias: { segmento_ordem: number; trecho?: string }[];
+  /** Sem trecho literal na transcrição: tratado como inferido. */
+  sem_evidencia: boolean;
+}
+
+export type AcaoItem = "confirmar" | "editar" | "rejeitar";
+
+export interface RevisaoItemEntrada {
+  acao: AcaoItem;
+  natureza_final?: NaturezaItem;
+  descricao?: string;
+  categoria?: CategoriaItem;
+}
+
+export interface NovoItemEntrada {
+  categoria: CategoriaItem;
+  descricao: string;
+  natureza_final: NaturezaItem;
+}
+
+export interface SegmentoReuniao {
+  ordem: number;
+  falante: string;
+  /** Texto original: só a interface o vê; a IA só recebe o mascarado. */
+  texto: string;
+  texto_mascarado: string;
+}
+
+export interface ReuniaoCompleta {
+  id: number;
+  jornada_id: number;
+  titulo: string;
+  dados_mascarados: number;
+  segmentos: SegmentoReuniao[];
 }
 
 export interface RegistroAuditoria {

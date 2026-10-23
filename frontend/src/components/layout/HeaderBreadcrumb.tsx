@@ -19,7 +19,12 @@ export function HeaderBreadcrumb() {
   const raiz = usuario.papel === "admin" ? ["Diretoria"] : atual && atual !== menu[0] ? [menu[0].rotulo] : [];
   // O lead não está no menu: a trilha parte do kanban do perfil (o nome do lead é o título da página).
   const noLead = caminho.startsWith("/jornadas/");
-  const trilha = noLead ? [menu[0].rotulo, "Página do lead"] : [...raiz, atual?.rotulo ?? "Ponte"];
+  const naRevisao = caminho.endsWith("/revisao");
+  const trilha = naRevisao
+    ? [menu[0].rotulo, "Página do lead", "Revisão dos itens"]
+    : noLead
+      ? [menu[0].rotulo, "Página do lead"]
+      : [...raiz, atual?.rotulo ?? "Ponte"];
 
   return (
     <header className="sticky top-0 z-10 flex h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 shadow-[0_2px_4px_rgba(15,27,45,0.06)] lg:px-8 xl:px-10">
