@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Identidade Ponte · Seed a Bit (docs/telas). A interface é de tema único. */
+@theme {
+  --color-marinho: #0b1f3f;
+  --color-marinho-claro: #13305c;
+  --color-lima: #dbea35;
+  --color-lima-suave: #f3f8c9;
+  --color-azul: #0563b4;
+  --color-azul-escuro: #0b2f6b;
+  --color-azul-suave: #e6f0fa;
+  --color-tinta: #0f1b2d;
+  --color-cinza: #5b6b80;
+  --color-fundo: #f6f8fb;
+  --color-perigo: #b42318;
+  --color-perigo-suave: #fdecea;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-fundo);
+  color: var(--color-tinta);
+}

@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  segredos:
+    name: Varredura de segredos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # a action lista os commits do PR
+    steps:
+      - name: Baixar código (histórico completo)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  frontend:
+    name: Frontend - Lint e Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v6
+
+      - name: Configurar Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # pega erro de tipo/compilação que o lint não vê
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend - Lint e Testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      LLM_PROVIDER: mock # nunca chamar IA paga no CI
+      TEST_DATABASE_URL: postgresql+psycopg://handoff:handoff@localhost:5432/handoff_teste
+    services:
+      postgres:
+        image: postgres:16 # mesmo do compose
+        env:
+          POSTGRES_USER: handoff
+          POSTGRES_PASSWORD: handoff
+          POSTGRES_DB: handoff_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U handoff -d handoff_teste"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v6
+
+      - name: Configurar uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12" # mesmo do Dockerfile
+
+      - name: Instalar dependências
+        run: uv sync --frozen --extra dev
+
+      - name: Lint
+        run: uv run ruff check app tests
+
+      - name: Testes
+        run: uv run pytest -q
