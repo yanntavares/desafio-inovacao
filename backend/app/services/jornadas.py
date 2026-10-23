@@ -6,7 +6,16 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Documento, Item, Job, Jornada, PacoteHandoff, Pendencia, Reuniao, Usuario
+from app.models import (
+    Documento,
+    Item,
+    Job,
+    Jornada,
+    PacoteHandoff,
+    Pendencia,
+    Reuniao,
+    Usuario,
+)
 from app.models.enums import (
     EstadoJornada as E,
 )
